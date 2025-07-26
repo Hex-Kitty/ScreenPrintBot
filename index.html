@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tshirt Shop Bot</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: 2em auto; }
+        h1, h2 { text-align: center; }
+        #chat-window { border: 1px solid #ddd; border-radius: 8px; padding: 20px; }
+        #response { padding: 1em; background:#f0f0f0; border-radius: 5px; min-height:1.5em; margin-top: 1em; }
+        #input-area { display: flex; margin-top: 1em; }
+        #userInput { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px 0 0 5px; }
+        #askButton { padding: 10px 15px; border: 1px solid #007bff; background: #007bff; color: white; border-radius: 0 5px 5px 0; cursor: pointer; }
+        /* Style for our new links */
+        #response a { color: #0056b3; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div id="chat-window">
+        <h1>Tshirt Shop Bot</h1>
+        <p><b>Try Asking:</b> "What is your minimum?", "What artwork file do you need?", or "Do you offer DTF?"</p>
+        
+        <div id="input-area">
+            <input type="text" id="userInput" placeholder="Your question...">
+            <button id="askButton" onclick="askBot()">Ask</button>
+        </div>
+        
+        <h2>Response:</h2>
+        <div id="response">...</div>
+    </div>
+
+    <script>
+        async function askBot() {
+            const message = document.getElementById('userInput').value;
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = '...thinking...';
+
+            const response = await fetch('http://127.0.0.1:5000/quote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            });
+            const data = await response.json();
+            
+            // This new function finds URLs in the text and makes them clickable
+            const formattedResponse = linkify(data.bot_response);
+            responseDiv.innerHTML = formattedResponse; // Use .innerHTML to render the link
+        }
+
+        function linkify(text) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, function(url) {
+                return '<a href="' + url + '" target="_blank">' + url + '</a>';
+            });
+        }
+
+        // Allow pressing Enter to send the message
+        document.getElementById('userInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                askBot();
+            }
+        });
+    </script>
+</body>
+</html>
