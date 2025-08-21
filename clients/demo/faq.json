@@ -1,0 +1,245 @@
+{
+  "brand": "Sportswear Express",
+  "version": "1.1",
+  "match_rules": {
+    "case_sensitive": false,
+    "trim": true,
+    "normalize_whitespace": true,
+    "match_type": "contains_any"
+  },
+  "faqs": [
+    {
+      "id": 1,
+      "category": "General",
+      "title": "Services offered",
+      "triggers": ["services", "what do you do", "what services", "offerings", "screen printing", "screenprint", "embroidery", "dtf", "direct to film", "what can you make", "capabilities", "what do you offer"],
+      "answer": "We offer screen printing, embroidery, DTF transfers, and personalization such as names and numbers."
+    },
+    {
+      "id": 2,
+      "category": "General",
+      "title": "Hours",
+      "triggers": ["hours", "open", "when are you open", "business hours", "open today", "what time", "closing time", "opening time", "when closed"],
+      "answer": "Our business hours are Monday through Friday, 8:00 AM to 4:00 PM."
+    },
+    {
+      "id": 3,
+      "category": "General",
+      "title": "Location / pickup address",
+      "triggers": ["where are you", "location", "address", "pick up", "pickup", "directions", "storefront", "shop address", "where to pick up"],
+      "answer": "Our shop is located at 624 W Broadway Rd, Unit 220, Mesa, AZ 85210."
+    },
+    {
+      "id": 4,
+      "category": "General",
+      "title": "Contact",
+      "triggers": ["contact", "phone number", "email", "how to reach", "customer support", "call you", "text you", "reach you"],
+      "answer": "You can reach us at info@sportswearexpress.com or by phone at (480) 507-0786."
+    },
+    {
+      "id": 5,
+      "category": "General",
+      "title": "Minimum order",
+      "triggers": ["minimum order", "order minimum", "min qty", "small order", "lowest quantity", "minimums", "min order", "minimum for screen printing", "minimum for embroidery", "minimum for transfers"],
+      "answer": "For screen printing, the minimum order is 48 pieces. There is no minimum for embroidery. For transfers, the minimum is $10 worth of film."
+    },
+
+    { "_comment": "Printing & Embroidery Basics" },
+
+    {
+      "id": 6,
+      "category": "Printing & Embroidery Basics",
+      "title": "Methods explained (screen vs embroidery vs DTF)",
+      "triggers": ["difference", "screen vs", "embroidery vs", "dtf vs", "which method", "what’s best", "what is dtf", "what is screen printing", "what is embroidery", "compare methods"],
+      "answer": "Screen printing is great for bold designs and larger runs, embroidery adds a premium stitched look, and DTF transfers are ideal for full‑color or smaller orders."
+    },
+    {
+      "id": 7,
+      "category": "Printing & Embroidery Basics",
+      "title": "What products you decorate",
+      "triggers": ["what apparel", "what products", "shirts", "hats", "hoodies", "bags", "can you print", "jerseys", "fleece", "sweatshirts", "polos", "jackets", "totes", "what can you decorate", "product list"],
+      "answer": "We decorate t‑shirts, jerseys, hoodies, fleece, sweatshirts, polos, jackets, hats, tote bags, and more."
+    },
+    {
+      "id": 8,
+      "category": "Printing & Embroidery Basics",
+      "title": "Provide own garments",
+      "triggers": ["bring my own", "provide garments", "customer supplied", "byo shirts", "send in apparel", "supply my own", "can I bring shirts"],
+      "answer": "Yes — you can bring your own garments or even ship them directly to us."
+    },
+    {
+      "id": 9,
+      "category": "Printing & Embroidery Basics",
+      "title": "Catalog / brands carried",
+      "triggers": ["catalog", "brand list", "brands", "styles", "apparel options", "which brands", "do you carry"],
+      "answer": "We carry popular brands like Gildan, Bella+Canvas, Next Level, Sport‑Tek, Port Authority, Jerzees, and more."
+    },
+    {
+      "id": 10,
+      "category": "Printing & Embroidery Basics",
+      "title": "Samples / proofs",
+      "triggers": ["sample", "sample shirt", "printed sample", "proof", "mockup", "art proof", "digital proof", "approval"],
+      "answer": "Every order includes a digital mockup for your review — you can approve it or request changes before production."
+    },
+    {
+      "id": 11,
+      "category": "Printing & Embroidery Basics",
+      "title": "Design help",
+      "triggers": ["design help", "art help", "graphic design", "can you design", "create artwork", "design services", "make my logo", "need design"],
+      "answer": "Yes — our design team can create custom artwork or enhance your existing design."
+    },
+    {
+      "id": 12,
+      "category": "Printing & Embroidery Basics",
+      "title": "Color limits (screen print)",
+      "triggers": ["how many colors", "max colors", "number of colors", "spot colors", "color limit", "colors per location"],
+      "answer": "We can print up to 12 colors per location for screen printing."
+    },
+    {
+      "id": 13,
+      "category": "Printing & Embroidery Basics",
+      "title": "Artwork file types",
+      "triggers": ["file types", "artwork format", "acceptable files", "ai", "eps", "pdf", "png", "svg", "jpeg", "file requirements", "acceptable formats", "supported files", "art files", "artwork file types"],
+      "answer": "We accept AI, PDF, EPS, SVG, PNG, and high‑resolution JPEG files."
+    },
+    {
+      "id": 14,
+      "category": "Printing & Embroidery Basics",
+      "title": "Setup / digitizing fees",
+      "triggers": ["setup fee", "screen fee", "digitize", "embroidery setup", "art fee", "digitizing cost", "setup cost", "do you charge setup"],
+      "answer": "Screen printing setup fees are included. Embroidery requires a one‑time digitizing fee based on stitch count. Art services are billed at $75 per hour."
+    },
+
+    { "_comment": "Quotes, Orders & Turnaround" },
+
+    {
+      "id": 15,
+      "category": "Quotes, Orders & Turnaround",
+      "title": "Requesting a quote + what info you need",
+      "triggers": ["quote", "pricing", "how much", "price list", "estimate", "what info for quote", "get a quote", "request quote", "cost"],
+      "answer": "To get a quote, we’ll need your design, garment type, quantity, and print locations. I can help you start that process now, or you can visit our quote page to submit your details.",
+      "action": "start_quote"
+    },
+    {
+      "id": 16,
+      "category": "Quotes, Orders & Turnaround",
+      "title": "Rush orders & changes",
+      "triggers": ["rush", "urgent", "deadline", "expedite", "change order", "edit order", "last minute", "need it fast", "rush order"],
+      "answer": "Rush orders may be available depending on our schedule. Contact a team member to check availability and secure your spot."
+    },
+    {
+      "id": 17,
+      "category": "Quotes, Orders & Turnaround",
+      "title": "Bulk discounts",
+      "triggers": ["bulk discount", "quantity discount", "price break", "wholesale", "contract printing", "reseller", "discounts for large orders", "tier pricing"],
+      "answer": "All screen printing and embroidery use tier‑based pricing — the more you order, the lower your per‑piece cost. Resellers can contact us for contract printing rates."
+    },
+    {
+      "id": 18,
+      "category": "Quotes, Orders & Turnaround",
+      "title": "Turnaround time",
+      "triggers": ["turnaround", "how long", "lead time", "when ready", "production time", "turn time", "timeline", "eta"],
+      "answer": "Typical turnaround is 5–10 business days after artwork approval, depending on our production schedule and your due date."
+    },
+
+    { "_comment": "Pricing & Payments" },
+
+    {
+      "id": 19,
+      "category": "Pricing & Payments",
+      "title": "Payment methods / deposits / terms / tax / shipping in quote / price match",
+      "triggers": ["payment methods", "deposit", "payment terms", "financing", "tax", "shipping cost", "price match", "how to pay", "card", "credit card", "cash", "check"],
+      "answer": "We accept all major credit cards, checks, and cash."
+    },
+
+    { "_comment": "Shipping & Delivery" },
+
+    {
+      "id": 20,
+      "category": "Shipping & Delivery",
+      "title": "Pickup vs shipping / carriers / tracking / transit time / domestic-international",
+      "triggers": ["pickup", "ship", "what carriers", "ups", "usps", "fedex", "tracking", "how long shipping", "international", "shipping options", "delivery", "can you ship"],
+      "answer": "You can pick up your order in person or have it shipped. We work with all major carriers, including UPS, USPS, and FedEx."
+    },
+
+    { "_comment": "Quality, Returns & Guarantee" },
+
+    {
+      "id": 21,
+      "category": "Quality, Returns & Guarantee",
+      "title": "Guarantee / misprints / returns",
+      "triggers": ["guarantee", "warranty", "defective", "misprint", "return", "exchange", "policy", "quality guarantee", "damaged"],
+      "answer": "[Placeholder — update with final guarantee and return policy wording.]"
+    },
+
+    { "_comment": "Artwork & Technical" },
+
+    {
+      "id": 22,
+      "category": "Artwork & Technical",
+      "title": "Artwork services & digitizing prices",
+      "triggers": ["artwork cost", "digitizing cost", "vector", "clean up art", "stitch count estimate", "vectorize", "art cleanup", "art services", "artwork services", "logo digitizing", "embroidery digitizing"],
+      "answer": "Art services are billed at $75 per hour. Digitizing fees depend on logo size and stitch count. We can modify existing designs or create new ones from your ideas."
+    },
+    {
+      "id": 23,
+      "category": "Artwork & Technical",
+      "title": "Tech specs (max print area, smallest embroidery text, specialty inks)",
+      "triggers": ["max print area", "print size", "smallest font embroidery", "specialty inks", "metallic", "reflective", "puff", "tech specs", "technical specs", "capabilities size"],
+      "answer": "Specialty inks like metallic, reflective, and puff are available — contact a team member for details. Maximum screen print area is 14 inches wide by 16 inches tall."
+    },
+
+    { "_comment": "Special Requests & Integrations" },
+
+    {
+      "id": 24,
+      "category": "Special Requests & Integrations",
+      "title": "Personalization, mixing sizes/styles, special orders, fulfillment, store integrations",
+      "triggers": ["names numbers", "personalize", "mix sizes", "mix styles", "special order", "fulfillment", "ship to customers", "integrate store", "shopify", "woo", "woocommerce", "ecommerce", "online store", "team names", "numbering"],
+      "answer": "We offer jersey naming and numbering, as well as options for mixing sizes and styles within your order."
+    },
+
+    { "_comment": "NEW: Where to send files so artwork branch can land here" },
+
+    {
+      "id": 25,
+      "category": "Artwork & Technical",
+      "title": "Where to send files",
+      "triggers": ["where to send files", "send files", "upload art", "email art", "submit artwork", "how do I send art", "file upload"],
+      "answer": "Please email files to art@sportswearexpress.com or share a link via Google Drive, Dropbox, or WeTransfer."
+    },
+
+    { "_comment": "Branching hub for 'artwork' (broad term)" },
+
+    {
+      "id": 26,
+      "category": "Artwork & Technical",
+      "title": "Artwork (branching hub)",
+      "triggers": ["artwork", "art", "design", "art file", "art question", "about artwork"],
+      "type": "branch",
+      "prompt": "What about the artwork?",
+      "options": [
+        {
+          "label": "File types we accept",
+          "triggers": ["file types", "file type", "vector", "ai", "pdf", "eps", "png", "jpeg", "svg", "acceptable files", "art files", "file requirements"],
+          "answer": "We accept AI, PDF, EPS, SVG, PNG, and high‑resolution JPEG files."
+        },
+        {
+          "label": "Help with design",
+          "triggers": ["design help", "need design", "graphic design", "create artwork", "make my logo", "design services"],
+          "answer": "Yes — our design team can create custom artwork or enhance your existing design."
+        },
+        {
+          "label": "Where to send files",
+          "triggers": ["where to send", "email art", "upload art", "send files", "submit artwork"],
+          "answer": "Please email files to art@sportswearexpress.com or share a link via Google Drive, Dropbox, or WeTransfer."
+        },
+        {
+          "label": "Vectorizing/cleanup & digitizing fees",
+          "triggers": ["vectorize", "vectorizing", "art cleanup", "cleanup", "digitize", "digitizing", "fees", "cost"],
+          "answer": "Screen printing setup fees are included. Embroidery requires a one‑time digitizing fee based on stitch count. Art services are billed at $75 per hour."
+        }
+      ]
+    }
+  ]
+}

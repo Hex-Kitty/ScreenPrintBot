@@ -1,0 +1,74 @@
+{
+  "brand_name": "Screen Print Bot Demo",
+  "logo_path": "/static/logos/demo.png",
+
+  "colors": {
+    "primary": "#0D9488",
+    "secondary": "#111827",
+    "accent": "#F97316",
+    "bg": "#FFFFFF",
+    "text": "#111827"
+  },
+
+  "fonts": {
+    "heading": "Montserrat, sans-serif",
+    "body": "Inter, system-ui, sans-serif"
+  },
+
+  "ui": {
+    "intro_lines": [
+      "Ask me about pricing or general questions.",
+      "Type a request like: “72 tees, front 2c, back 1c.”",
+      "Or just tap the quick buttons below."
+    ],
+    "show_brand_text": false,
+    "logo_scale": 1.15,
+    "response_placeholder": "Your quote will appear here 👇",
+    "cta_label": "Submit",
+    "show_price_breakdown": true,
+    "support_email": "help@screenprintbot.com",
+    "support_phone": "111-111-1111",
+    "shop_url": "https://screenprintbot.com",
+    "enable_branching": true,
+    "greetings": [
+      "👋 Welcome to the Screen Print Bot Demo!",
+      "Hello from Bot Demo — ready for a quote?",
+      "Hey! We can price your tees in seconds.",
+      "Need a price or just have a question? I can help!"
+    ],
+    "small_order": {
+      "suggest": "dtf",
+      "link": "https://screenprintbot.com/dtf-transfers",
+      "label": "DTF transfers",
+      "cta_get": "Get DTF Quote",
+      "cta_alt": "Change Quantity"
+    },
+    "radius": "16px",
+    "shadow": "0 10px 30px rgba(0,0,0,.08)",
+    "quote_cta": {
+      "show": true,
+      "label": "Start a Quote",
+      "emoji": "🧾"
+    }
+  },
+
+  "buttons": {
+    "bg": "#D4A373",
+    "hover": "#B88352",
+    "text": "#111827"
+  },
+
+  "garments": {
+    "tiers_enabled": true,
+    "tiers": {
+      "good":   { "label": "Gildan 5000",       "blank_price": 3.00 },
+      "better": { "label": "Hanes Nano",        "blank_price": 4.00 },
+      "best":   { "label": "Bella+Canvas 3001", "blank_price": 5.00 }
+    }
+  },
+
+  "printing": {
+    "max_colors": 12,
+    "placements": ["front", "back", "left_sleeve", "right_sleeve"]
+  }
+}

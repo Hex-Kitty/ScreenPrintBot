@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ cfg.brand_name }}</title>
+
+  <style>
+    :root{
+      --color-primary: {{ cfg.colors.primary }};
+      --color-secondary: {{ cfg.colors.secondary }};
+      --color-accent: {{ cfg.colors.accent }};
+      --color-bg: {{ cfg.colors.bg }};
+      --color-text: {{ cfg.colors.text }};
+      --font-heading: {{ cfg.fonts.heading|e }};
+      --font-body: {{ cfg.fonts.body|e }};
+
+      --btn-bg: {{ (cfg.buttons.bg if cfg.buttons and cfg.buttons.bg else cfg.colors.accent) }};
+      --btn-hover: {{ (cfg.buttons.hover if cfg.buttons and cfg.buttons.hover else '#b45309') }};
+      --btn-text: {{ (cfg.buttons.text if cfg.buttons and cfg.buttons.text else '#ffffff') }};
+      --btn-focus-ring: {{ (cfg.buttons.bg if cfg.buttons and cfg.buttons.bg else cfg.colors.accent) }};
+
+      --logo-scale: {{ (cfg.ui.logo_scale if cfg.ui and cfg.ui.logo_scale is not none else 1) }};
+      --card-radius: {{ (cfg.ui.radius if cfg.ui and cfg.ui.radius else '12px') }};
+      --card-shadow: {{ (cfg.ui.shadow if cfg.ui and cfg.ui.shadow else '0 2px 12px rgba(0,0,0,.08)') }};
+    }
+    html, body {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-body);
+    }
+    .container { display:flex; justify-content:center; margin-top:48px; padding: 0 12px; }
+    .chat {
+      width:100%; max-width:640px; background:#fff; padding:24px;
+      border-radius: var(--card-radius); box-shadow: var(--card-shadow);
+    }
+    .brand {
+      display:flex; align-items:center; gap:12px; justify-content:center; margin-bottom:8px;
+    }
+    .brand img { height:40px; width:auto; transform: scale(var(--logo-scale)); transform-origin:center; }
+    h1 { text-align:center; color: var(--color-secondary); font-family: var(--font-heading); margin: 8px 0; }
+    p { color:#555; text-align:center; margin: 6px 0; }
+    .intro-line { line-height: 1.35; }
+
+    /* form is vertical now */
+    form { display:flex; flex-direction: column; gap: 10px; margin-top:20px; }
+    #user-input {
+      flex:1;
+      padding:12px 14px;
+      border:1px solid #ddd;
+      border-radius: 999px;
+      font-size:16px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    /* Actions row under input */
+    .actions {
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    /* Primary CTA uses tenant theme colors */
+    #ask-button {
+      padding:10px 18px;
+      border:none;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border-radius:999px;
+      cursor:pointer; font-size:1rem;
+      min-height:44px;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow:0 2px 6px rgba(0,0,0,.12);
+      transition: background-color .2s ease, transform .05s ease, box-shadow .2s ease;
+    }
+    #ask-button:hover { background: var(--btn-hover); }
+    #ask-button:active { transform: translateY(1px) scale(.99); box-shadow:0 2px 4px rgba(0,0,0,.10); }
+    #ask-button:focus { outline: none; }
+    #ask-button:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--btn-focus-ring) 40%, white); }
+
+    /* Secondary helper CTA */
+    .helper-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #111827;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+      transition: background-color .2s ease, box-shadow .2s ease, transform .05s ease;
+    }
+    .helper-cta:hover { background: #f8fafc; box-shadow: 0 4px 10px rgba(15,23,42,.08); }
+    .helper-cta:active { transform: translateY(1px) scale(.99); }
+    .helper-cta .emoji { font-size: 1.1rem; line-height: 1; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+
+    .response-box {
+      margin-top:16px;
+      padding:20px;
+      background:#f9fafb;
+      border:1px solid #e5e5e5;
+      border-radius:12px;
+      min-height:56px;
+      white-space:pre-wrap;
+      font-size:0.95rem;
+    }
+
+    .branch-wrap{ margin-top:14px; display:flex; flex-wrap:wrap; gap:.75rem; }
+    .branch-btn{
+      appearance:none; border:1px solid #e2e8f0; background:#ffffff; color:#0f172a;
+      padding:.65rem 1rem; border-radius:999px; font-size:1rem; line-height:1.1; min-height:44px; min-width:72px;
+      box-shadow:0 1px 2px rgba(0,0,0,.04);
+      transition:transform .05s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease;
+      cursor:pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .branch-btn:hover{ background:#f8fafc; border-color:#cbd5e1; box-shadow:0 4px 10px rgba(15,23,42,.08); }
+    .branch-btn:active{ transform:translateY(1px) scale(.99); box-shadow:0 2px 6px rgba(15,23,42,.06); }
+    .branch-btn:focus{ outline:none; }
+    .branch-btn:focus-visible{ box-shadow:0 0 0 3px color-mix(in oklab, var(--btn-focus-ring) 35%, white); border-color: var(--btn-bg); }
+    .branch-btn.primary{
+      background: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-bg);
+      box-shadow:0 6px 14px color-mix(in oklab, var(--btn-bg) 35%, transparent);
+    }
+    .branch-btn.primary:hover{ background: var(--btn-hover); box-shadow:0 10px 22px color-mix(in oklab, var(--btn-bg) 45%, transparent); }
+    .branch-btn:disabled{ opacity:.55; cursor:default; box-shadow:none; }
+
+    @media (prefers-reduced-motion: reduce){
+      .branch-btn, #ask-button, .helper-cta{ transition:none; }
+    }
+
+    @media (max-width: 480px) {
+      .container { margin-top:16px; padding: 0 12px; }
+      .chat { padding:16px; border-radius:10px; }
+      .response-box { min-height: 40px; font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="chat">
+      <div class="brand">
+        <img
+          src="{{ cfg.logo_path or url_for('static', filename='logos/' + tenant + '.png') }}"
+          onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'"
+          alt="{{ cfg.brand_name }} logo"
+        />
+        {% if cfg.ui.show_brand_text %}
+          <h1>{{ cfg.brand_name }}</h1>
+        {% endif %}
+      </div>
+
+      {% if cfg.ui.intro_lines %}
+        {% for line in cfg.ui.intro_lines %}
+          <p class="intro-line">{{ line }}</p>
+        {% endfor %}
+      {% else %}
+        <p class="intro-line">Ask questions or get instant pricing for screen printing.</p>
+        <p class="intro-line">Type a request like: “72 tees, front 2c, back 1c.”</p>
+        <p class="intro-line">Or just tap the quick buttons below.</p>
+      {% endif %}
+
+      <!-- Form: input on top, actions row beneath -->
+      <form id="chat-form">
+        <input
+          type="text"
+          id="user-input"
+          placeholder="{{ (cfg.ui.input_placeholder if cfg.ui and cfg.ui.input_placeholder else 'Tell us what you need… e.g. “72 tees, front 2c, back 1c”') }}"
+          required
+          autocomplete="off"
+        />
+
+        <div class="actions">
+          <button type="submit" id="ask-button">{{ (cfg.ui.cta_label if cfg.ui and cfg.ui.cta_label else 'Submit') }}</button>
+
+          {% if cfg.ui.quote_cta and cfg.ui.quote_cta.show %}
+            <button
+              type="button"
+              class="helper-cta"
+              id="start-quote-btn"
+              aria-label="{{ (cfg.ui.quote_cta.label or 'Start a Quote') }}">
+              {% if cfg.ui.quote_cta.emoji %}
+                <span class="emoji" aria-hidden="true">{{ cfg.ui.quote_cta.emoji }}</span>
+              {% endif %}
+              <span>{{ (cfg.ui.quote_cta.label or 'Start a Quote') }}</span>
+              <span class="sr-only">Start a quote</span>
+            </button>
+          {% endif %}
+        </div>
+      </form>
+
+      <div id="response" class="response-box">
+        <em id="responsePlaceholder">{{ (cfg.ui.response_placeholder if cfg.ui and cfg.ui.response_placeholder else 'Your quote will appear here 👇') }}</em>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TENANT = "{{ tenant|default('demo') }}";
+    const BRAND  = "{{ cfg.brand_name|e }}";
+
+    const form = document.getElementById('chat-form');
+    const inputEl = document.getElementById('user-input');
+    const responseDiv = document.getElementById('response');
+    const responsePlaceholder = document.getElementById('responsePlaceholder');
+    const startQuoteBtn = document.getElementById('start-quote-btn');
+
+    let LAST_QUOTE_PAYLOAD = null;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = inputEl.value.trim();
+      if (!message) return;
+      inputEl.value = '';
+      setThinking();
+      await sendMessage(message);
+    });
+
+    if (startQuoteBtn) {
+      startQuoteBtn.addEventListener('click', async () => {
+        setThinking();
+        await sendMessage('quote'); // kicks off the quantity step immediately
+      });
+    }
+
+    function clearPlaceholder() {
+      if (responsePlaceholder) responsePlaceholder.remove();
+    }
+
+    function setThinking() {
+      clearPlaceholder();
+      responseDiv.textContent = '...thinking...';
+      const old = responseDiv.querySelector('.branch-wrap');
+      if (old) old.remove();
+    }
+
+    async function sendMessage(text) {
+      try {
+        const res = await fetch(`/api/ask/${TENANT}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        if (data.quote) LAST_QUOTE_PAYLOAD = data.quote;
+        renderReply(data);
+      } catch (err) {
+        console.error(err);
+        responseDiv.textContent = 'Network error. Please try again.';
+      }
+    }
+
+    function renderReply(data) {
+      const type = data.type || 'answer';
+      if (data.quote) LAST_QUOTE_PAYLOAD = data.quote;
+
+      clearPlaceholder();
+
+      if (type === 'branch' || (data.options && data.options.length)) {
+        renderBranch(data.prompt || data.answer || 'Choose an option:', data.options || []);
+      } else {
+        responseDiv.innerHTML = linkify(data.reply || data.answer || 'No response.');
+      }
+      responseDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    function renderBranch(promptText, options) {
+      responseDiv.innerHTML = linkify(promptText);
+      const wrap = document.createElement('div');
+      wrap.className = 'branch-wrap';
+
+      options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'branch-btn';
+        btn.textContent = opt.label || `Option ${i+1}`;
+
+        const value = opt.value || btn.textContent || String(i+1);
+        if (value === 'download_pdf') btn.classList.add('primary');
+
+        btn.addEventListener('click', async () => {
+          wrap.querySelectorAll('button').forEach(b => b.disabled = true);
+
+          if (value === 'download_pdf') {
+            if (!LAST_QUOTE_PAYLOAD) {
+              alert("No quote ready. Please compute a quote first.");
+              wrap.querySelectorAll('button').forEach(b => b.disabled = false);
+              return;
+            }
+            try {
+              btn.textContent = 'Preparing PDF…';
+              await downloadQuotePDF(TENANT, LAST_QUOTE_PAYLOAD);
+              btn.textContent = opt.label || 'Download PDF';
+            } catch (e) {
+              console.error(e);
+              alert(e.message || "Sorry—couldn’t generate the PDF.");
+              btn.textContent = opt.label || 'Download PDF';
+            } finally {
+              wrap.querySelectorAll('button').forEach(b => b.disabled = false);
+            }
+            return;
+          }
+
+          setThinking();
+          await sendMessage(value);
+        });
+
+        wrap.appendChild(btn);
+      });
+
+      responseDiv.appendChild(wrap);
+    }
+
+    function linkify(text) {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      return (text || '').replace(urlRegex, (url) => `<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
+    }
+
+    async function downloadQuotePDF(tenant, quotePayload) {
+      const res = await fetch(`/api/download_quote/${tenant}`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(quotePayload)
+      });
+      if (!res.ok) {
+        try {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to generate PDF");
+        } catch {
+          throw new Error("Failed to generate PDF");
+        }
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const qty = (quotePayload && quotePayload.quantity) ? quotePayload.quantity : "quote";
+      const fname = `${(BRAND || "quote").replace(/\s+/g,'_')}_quote_${qty}.pdf`;
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

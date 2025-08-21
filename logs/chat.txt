@@ -1,0 +1,19 @@
+[2025-08-17 18:26:54Z] demo demo:127 USER: hi
+[2025-08-17 18:26:54Z] demo demo:127 BOT: Need a price or just have a question? I can help!
+[2025-08-17 18:26:59Z] demo demo:127 USER: quote
+[2025-08-17 18:26:59Z] demo demo:127 BOT: How many shirts?
+[2025-08-17 18:27:01Z] demo demo:127 USER: 48
+[2025-08-17 18:27:01Z] demo demo:127 BOT: First location — pick one.
+[2025-08-17 18:27:02Z] demo demo:127 USER: placement:left_sleeve
+[2025-08-17 18:27:02Z] demo demo:127 BOT: How many colors for Left Sleeve?
+[2025-08-17 18:27:03Z] demo demo:127 USER: 1c
+[2025-08-17 18:27:03Z] demo demo:127 BOT: Add another print location?
+[2025-08-17 18:27:04Z] demo demo:127 USER: no
+[2025-08-17 18:27:04Z] demo demo:127 BOT: Choose a shirt option:
+[2025-08-17 18:27:05Z] demo demo:127 USER: good
+[2025-08-17 18:27:05Z] demo demo:127 BOT: Summary ➜ Qty 48, left sleeve 1c, Shirt: Gildan 5000. Compute?
+[2025-08-17 18:27:07Z] demo demo:127 USER: yes
+[2025-08-17 18:27:07Z] demo demo:127 BOT: Per-shirt print: $2.38
+Blank: $3.00
+Per-shirt out-the-door: $5.38
+Grand total (48): $258.24
