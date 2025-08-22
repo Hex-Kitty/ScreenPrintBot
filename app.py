@@ -7,14 +7,21 @@ CLIENTS_DIR = os.path.join(APP_ROOT, "clients")
 
 app = Flask(__name__)
 
+# Trust Render/Proxy headers for correct client IP/proto
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
+# ---------------- Feature flags ----------------
+FORCE_WIZARD = os.getenv("FORCE_WIZARD", "false").lower() == "true"
+
 # =========================
 # >>> LOGGING PATCH START
 # =========================
-import uuid, logging, sys, json, re, os
+import uuid, logging, sys, json as _json_mod, re as _re_mod, os as _os_mod
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
-from typing import Optional, Dict, Any
-from flask import request
+from typing import Optional as _Optional, Dict as _Dict, Any as _Any
+from flask import request as _flask_request
 
 LOG_ENABLED: bool = True
 LOG_DIR: str = "logs"
@@ -55,13 +62,12 @@ if LOG_ENABLED:
     logger_txt.setLevel(logging.INFO)
     logger_txt.addHandler(txt_handler)
 
-    # 🔹 Console handler (shows up in Render Logs)
+    # Console handler (shows up in Render Logs) — attach to ONE logger to avoid dupes
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
-    if logger_json:
-        logger_json.addHandler(console_handler)
     if logger_txt:
         logger_txt.addHandler(console_handler)
+    # (Optional) if you prefer JSON in console, attach to logger_json instead of logger_txt.
 
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 PHONE_RE = re.compile(r"\+?\d[\d\-\s().]{7,}\d")
@@ -90,7 +96,7 @@ def log_turn(session_id: str, role: str, message: str, meta: Optional[Dict[str, 
         "meta": meta or {},
     }
     if logger_json:
-        logger_json.info(json.dumps(entry, ensure_ascii=False))
+        logger_json.info(_json_mod.dumps(entry, ensure_ascii=False))
     if logger_txt:
         sid_short = (session_id or "")[:8]
         tenant = (meta or {}).get("tenant") or "-"
@@ -98,6 +104,13 @@ def log_turn(session_id: str, role: str, message: str, meta: Optional[Dict[str, 
 # =========================
 # >>> LOGGING PATCH END
 # =========================
+
+# ---------- stable session id via cookie ----------
+def _get_sid() -> str:
+    sid = request.cookies.get("sid")
+    if not sid:
+        sid = uuid.uuid4().hex[:16]
+    return sid
 
 # ---------- small JSON cache with mtime ----------
 _json_cache: Dict[Tuple[str, str], Dict[str, Any]] = {}
@@ -212,18 +225,9 @@ def _expand_sleeves(loc: str) -> List[str]:
     return [loc]
 
 def _parse_freeform_request(user_message: str, cfg: dict) -> Dict[str, Any]:
-    """
-    Returns:
-      {
-        "quantity": Optional[int],
-        "locations": List[{"location": str, "colors": int}],
-        "global_colors": Optional[int]
-      }
-    """
     text = user_message.lower()
     result: Dict[str, Any] = {"quantity": _detect_quantity(text), "locations": [], "global_colors": None}
 
-    # 1) Per-location patterns: "3c front", "front 2 colors"
     pat_after = re.compile(r"(\d{1,2})\s*c(?:olors?)?\s*(front|back|left sleeve|right sleeve|sleeves?|pocket)\b")
     pat_before = re.compile(r"(front|back|left sleeve|right sleeve|sleeves?|pocket)\s*(\d{1,2})\s*c(?:olors?)?\b")
 
@@ -243,20 +247,15 @@ def _parse_freeform_request(user_message: str, cfg: dict) -> Dict[str, Any]:
             result["locations"].append({"location": loc, "colors": min(c, int((cfg or {}).get("printing", {}).get("max_colors", 12)))})
         consumed.append((m.start(), m.end()))
 
-    # 2) Global locations like "front + back" / "front and back" / "front/back"
     has_front_back = re.search(r"\bfront\s*(?:\+|&|and|\/)\s*back\b", text)
     if has_front_back and not any(l["location"] in {"front","back"} for l in result["locations"]):
         result["locations"].extend([{"location":"front","colors":None},{"location":"back","colors":None}])
 
-    # 3) Single location mentions with no explicit colors (we'll fill with global later)
     for name, norm in [("front","front"),("back","back"),("left sleeve","left_sleeve"),("right sleeve","right_sleeve"),("pocket","pocket"),("sleeves","sleeves")]:
         if re.search(rf"\b{name}\b", text) and not any(l["location"] in _expand_sleeves(norm) for l in result["locations"]):
             for loc in _expand_sleeves(norm):
                 result["locations"].append({"location": loc, "colors": None})
 
-    # 4) Global colors (not attached to a location)
-    #    We'll ignore color mentions already "consumed" by the per-location regex above.
-    #    Simple approach: remove consumed spans then search again.
     pruned = []
     last = 0
     for s, e in sorted(consumed):
@@ -269,13 +268,11 @@ def _parse_freeform_request(user_message: str, cfg: dict) -> Dict[str, Any]:
     if m_global:
         result["global_colors"] = int(m_global.group(1))
 
-    # Remove duplicates while preserving first color set if duplicated
     seen = set()
     deduped = []
     for ent in result["locations"]:
         key = ent["location"]
         if key in seen:
-            # prefer the one that actually has colors
             idx = next((i for i, d in enumerate(deduped) if d["location"] == key), None)
             if idx is not None and deduped[idx]["colors"] is None and ent["colors"] is not None:
                 deduped[idx]["colors"] = ent["colors"]
@@ -378,7 +375,7 @@ def _respond(message: str, buttons: Optional[List[Dict[str,str]]] = None, extra:
         payload.update(extra)
     return payload
 
-# Session store for quote flow
+# Session store for quote flow (keyed by tenant + sid)
 QUOTE_SESSIONS: Dict[Tuple[str,str], Dict[str,Any]] = {}
 
 # --- Config + policy helpers ---
@@ -395,7 +392,7 @@ def _small_order_policy(cfg: dict) -> Dict[str, str]:
     so = ui.get("small_order", {}) or {}
     suggest = (so.get("suggest") or ("dtf" if ui.get("dtf_enabled", True) else "none")).lower()
     return {
-        "suggest": suggest,                                       # dtf | embroidery | none
+        "suggest": suggest,
         "link": so.get("link"),
         "label": so.get("label") or ("DTF transfers" if suggest=="dtf" else ("Embroidery" if suggest=="embroidery" else "")),
         "cta_get": so.get("cta_get") or ("Get DTF Quote" if suggest=="dtf" else ("Get Embroidery Quote" if suggest=="embroidery" else "")),
@@ -403,8 +400,8 @@ def _small_order_policy(cfg: dict) -> Dict[str, str]:
     }
 
 # --- helper: start new session / reset ---
-def _start_new_quote_session(tenant: str, ip: str) -> Dict[str, Any]:
-    QUOTE_SESSIONS[(tenant, ip)] = {
+def _start_new_quote_session(tenant: str, sid: str) -> Dict[str, Any]:
+    QUOTE_SESSIONS[(tenant, sid)] = {
         "step":"ask_qty",
         "quantity":None,
         "locations":[],
@@ -414,8 +411,8 @@ def _start_new_quote_session(tenant: str, ip: str) -> Dict[str, Any]:
     pricing = _load_json(tenant,"pricing")
     return _respond("How many shirts?", _qty_buttons_from_pricing(pricing), {"state":{"step":"ask_qty"}})
 
-def _start_prefilled_session(tenant: str, ip: str, cfg: dict, quantity: int, locations: List[Dict[str,int]]) -> Dict[str, Any]:
-    QUOTE_SESSIONS[(tenant, ip)] = {
+def _start_prefilled_session(tenant: str, sid: str, cfg: dict, quantity: int, locations: List[Dict[str,int]]) -> Dict[str, Any]:
+    QUOTE_SESSIONS[(tenant, sid)] = {
         "step":"ask_more",
         "quantity":quantity,
         "locations": locations[:],
@@ -467,7 +464,7 @@ def _color_buttons(cfg: dict) -> List[Dict[str,str]]:
     labels = [f"{i}c" for i in range(1, min(maxc,6)+1)]
     if maxc > 6:
         labels.append(f"7–{maxc}c")
-    return [{"label": l, "value": l.replace("–","-")} for l in labels]  # normalize en dash
+    return [{"label": l, "value": l.replace("–","-")} for l in labels]
 
 # --- Garment tier buttons ---
 def _tier_buttons(cfg: dict):
@@ -604,8 +601,8 @@ def _pick_greeting(cfg: dict) -> str:
     return random.choice(stock)
 
 # ------------------ main quote flow ------------------
-def _handle_quote_flow(tenant: str, cfg: dict, pricing: dict, ip: str, user_message: str) -> Optional[Dict[str, Any]]:
-    key = (tenant, ip)
+def _handle_quote_flow(tenant: str, cfg: dict, pricing: dict, sid: str, user_message: str) -> Optional[Dict[str, Any]]:
+    key = (tenant, sid)
     s = QUOTE_SESSIONS.get(key)
     if s is None:
         return None
@@ -615,7 +612,7 @@ def _handle_quote_flow(tenant: str, cfg: dict, pricing: dict, ip: str, user_mess
     # GLOBAL RESET HOOK (works at any time during the flow)
     if msg in {"reset","restart","start over","start-over","new quote","new-quote","clear"}:
         QUOTE_SESSIONS.pop(key, None)
-        return _start_new_quote_session(tenant, ip)
+        return _start_new_quote_session(tenant, sid)
 
     # Helper: render small-order suggestion (config-driven)
     def _small_order_branch(qty: int):
@@ -660,14 +657,12 @@ def _handle_quote_flow(tenant: str, cfg: dict, pricing: dict, ip: str, user_mess
             s.update({"step":"ask_qty","quantity":None})
             return _respond("No problem — how many shirts?", _qty_buttons_from_pricing(pricing), {"state":{"step":"ask_qty"}})
         if msg in {"dtf","embroidery"}:
-            # End the flow for now; you can later branch to a separate flow.
             QUOTE_SESSIONS.pop(key, None)
             pol = _small_order_policy(cfg)
             link = pol["link"]
             label = pol["label"] or msg.title()
             link_txt = f" — see options here: {link}" if link else ""
             return _respond(f"Great — we’ll follow up with {label} options shortly. 👍{link_txt}")
-        # anything else: re-show the branch
         return _small_order_branch(s.get("quantity") or 0)
 
     # ----- Step: ask location OR color for pending placement -----
@@ -814,40 +809,35 @@ def _parse_location_colors(text: str) -> Dict[str, Optional[Any]]:
     return {"location": loc, "colors": colors}
 
 # start a quote flow if user intent or numbers found
-def _maybe_start_quote_flow(tenant: str, cfg: dict, ip: str, user_message: str) -> Optional[Dict[str,Any]]:
+def _maybe_start_quote_flow(tenant: str, cfg: dict, sid: str, user_message: str) -> Optional[Dict[str,Any]]:
     text = _normalize(user_message)
-    # If user explicitly asks to reset/new quote when no session exists, start fresh
     if text in {"reset","restart","start over","start-over","new quote","new-quote","clear"}:
-        return _start_new_quote_session(tenant, ip)
+        return _start_new_quote_session(tenant, sid)
 
     trigger = any(k in text for k in ["quote","price","pricing","estimate","cost"]) or bool(re.findall(r'\d+', text))
     if not trigger:
         return None
 
-    key = (tenant, ip)
+    key = (tenant, sid)
     if key in QUOTE_SESSIONS:
         return None
 
-    # NEW: try multi-location freeform parse
     parsed = _parse_freeform_request(user_message, cfg)
     qty = parsed["quantity"]
     locs = parsed["locations"] or []
 
-    # If we have locations without colors, but a global color was specified, apply it.
     if parsed["global_colors"] is not None:
         for l in locs:
             if l["colors"] is None:
                 l["colors"] = parsed["global_colors"]
 
-    # Filter out any remaining locations still missing colors
     locs = [l for l in locs if l.get("colors")]
 
     if qty and locs:
-        return _start_prefilled_session(tenant, ip, cfg, qty, locs)
+        return _start_prefilled_session(tenant, sid, cfg, qty, locs)
 
     if qty:
-        # quantity but no locs yet → ask for first location
-        QUOTE_SESSIONS[(tenant, ip)] = {
+        QUOTE_SESSIONS[(tenant, sid)] = {
             "step":"ask_loc",
             "quantity":qty,
             "locations":[],
@@ -856,8 +846,7 @@ def _maybe_start_quote_flow(tenant: str, cfg: dict, ip: str, user_message: str) 
         }
         return _respond("First location — pick one.", _placement_buttons(cfg, []), {"state":{"step":"ask_loc"}})
 
-    # fallback: regular starter
-    return _start_new_quote_session(tenant, ip)
+    return _start_new_quote_session(tenant, sid)
 # =====================================================================
 
 # =========================
@@ -959,22 +948,28 @@ def _render_quote_pdf(tenant: str, cfg: dict, pricing: dict, payload: Dict[str, 
     return pdf_bytes
 
 # ---------- main chatbot orchestration ----------
-def chatbot_response(tenant: str, data: Dict[str, Any], user_message: str, ip: str) -> Dict[str, Any]:
+def chatbot_response(tenant: str, data: Dict[str, Any], user_message: str, sid: str) -> Dict[str, Any]:
     enable_branching = data.get("config", {}).get("ui", {}).get("enable_branching", True)
 
-    handled = _handle_quote_flow(tenant, data.get("config", {}), data.get("pricing", {}), ip, user_message)
+    handled = _handle_quote_flow(tenant, data.get("config", {}), data.get("pricing", {}), sid, user_message)
     if handled:
         return handled
 
     # Allow reset even when no active session and user types it
     if _normalize(user_message) in {"reset","restart","start over","start-over","new quote","new-quote","clear"}:
-        return _start_new_quote_session(tenant, ip)
+        return _start_new_quote_session(tenant, sid)
+
+    # Force structured flow for beta (optional)
+    if FORCE_WIZARD:
+        started = _maybe_start_quote_flow(tenant, data.get("config", {}), sid, user_message)
+        if started:
+            return started
 
     if _is_greeting(user_message):
         greet = _pick_greeting(data.get("config", {}))
         return _respond(greet, [{"label":"Get a Quote","value":"quote"}])
 
-    start_quote = _maybe_start_quote_flow(tenant, data.get("config", {}), ip, user_message)
+    start_quote = _maybe_start_quote_flow(tenant, data.get("config", {}), sid, user_message)
     if start_quote:
         return start_quote
 
@@ -991,7 +986,7 @@ def chatbot_response(tenant: str, data: Dict[str, Any], user_message: str, ip: s
         if matched_item.get("type") == "branch":
             options = matched_item.get("options", []) or []
             if enable_branching and options:
-                PENDING_BRANCH[(tenant, ip)] = {
+                PENDING_BRANCH[(tenant, sid)] = {
                     "id": matched_item.get("id"),
                     "options": options
                 }
@@ -1037,23 +1032,30 @@ def bot_ui(tenant: str):
     data = _load_all(tenant)
     return render_template("index.html", cfg=data["config"], faq=get_faq_items(data["faq"]), tenant=tenant)
 
+# Alias to support older links
+@app.route("/client/<tenant>", methods=["GET"])
+def client_alias(tenant: str):
+    return redirect(url_for("bot_ui", tenant=tenant), code=302)
+
 @app.route("/api/ask/<tenant>", methods=["POST"])
 def ask(tenant: str):
     msg = (request.get_json() or {}).get("message", "").strip()
     if not msg:
         return jsonify({"type": "answer", "reply": "Invalid request.", "answer": "Invalid request."}), 400
     data = _load_all(tenant)
-    ip = request.remote_addr or "local"
+    sid = _get_sid()
 
-    session_id = request.cookies.get("sid") or request.headers.get("X-Session-Id") or f"{tenant}:{ip}"
+    session_id = sid
     log_turn(session_id, "user", msg, meta={"tenant": tenant})
 
-    result = chatbot_response(tenant, data, msg, ip)
+    result = chatbot_response(tenant, data, msg, sid)
 
     reply_text = result.get("reply") or result.get("answer") or json.dumps(result)
     log_turn(session_id, "bot", reply_text, meta={"tenant": tenant})
 
-    return jsonify(result)
+    resp = jsonify(result)
+    resp.set_cookie("sid", sid, max_age=60*60*24*30, samesite="Lax", secure=True)
+    return resp
 
 # --- NEW: Download Quote PDF ---
 @app.route("/api/download_quote/<tenant>", methods=["POST"])
@@ -1081,21 +1083,23 @@ def download_quote(tenant: str):
 def quote_compat():
     payload = (request.get_json() or {})
     msg = (payload.get("message") or "").strip()
-    tenant = payload.get("tenant") or payload.get("client") or "sportswearexpress"
+    tenant = payload.get("tenant") or payload.get("client") or "swx"  # safer default
     if not msg:
         return jsonify({"type": "answer", "reply": "Invalid request.", "answer": "Invalid request."}), 400
     data = _load_all(tenant)
-    ip = request.remote_addr or "local"
+    sid = _get_sid()
 
-    session_id = request.cookies.get("sid") or request.headers.get("X-Session-Id") or f"{tenant}:{ip}"
+    session_id = sid
     log_turn(session_id, "user", msg, meta={"tenant": tenant})
 
-    result = chatbot_response(tenant, data, msg, ip)
+    result = chatbot_response(tenant, data, msg, sid)
 
     reply_text = result.get("reply") or result.get("answer") or json.dumps(result)
     log_turn(session_id, "bot", reply_text, meta={"tenant": tenant})
 
-    return jsonify(result)
+    resp = jsonify(result)
+    resp.set_cookie("sid", sid, max_age=60*60*24*30, samesite="Lax", secure=True)
+    return resp
 
 @app.route("/", methods=["GET"])
 def root_redirect():
@@ -1119,10 +1123,28 @@ def home():
 def ping():
     return "pong", 200
 
+@app.route("/health")
+def health():
+    return "ok", 200
+
 @app.errorhandler(403)
 def e403(e):
     print("⚠️  403 handler hit for path:", request.path, "| reason:", e)
     return "Forbidden", 403
+
+@app.errorhandler(Exception)
+def on_unhandled_error(e):
+    try:
+        logger_txt and logger_txt.info(f"EXC on {request.path}: {e}")
+        logger_json and logger_json.info(_json_mod.dumps({
+            "ts": datetime.utcnow().isoformat(timespec="seconds")+"Z",
+            "route": request.path,
+            "error": str(e),
+            "tenant": (request.view_args or {}).get("tenant")
+        }))
+    except Exception:
+        pass
+    return make_response("Sorry—something went wrong. Please try the step‑by‑step quote.", 500)
 
 if __name__ == "__main__":
     debug = os.getenv("FLASK_DEBUG", "1") == "1"
