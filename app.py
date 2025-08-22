@@ -10,9 +10,11 @@ app = Flask(__name__)
 # =========================
 # >>> LOGGING PATCH START
 # =========================
-import uuid, logging
+import uuid, logging, sys, json, re, os
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
+from typing import Optional, Dict, Any
+from flask import request
 
 LOG_ENABLED: bool = True
 LOG_DIR: str = "logs"
@@ -23,6 +25,7 @@ logger_txt = None
 if LOG_ENABLED:
     os.makedirs(LOG_DIR, exist_ok=True)
 
+    # File handler for JSON logs
     json_handler = TimedRotatingFileHandler(
         filename=os.path.join(LOG_DIR, "chat.jsonl"),
         when="midnight",
@@ -35,13 +38,14 @@ if LOG_ENABLED:
     logger_json.setLevel(logging.INFO)
     logger_json.addHandler(json_handler)
 
+    # File handler for text logs
     txt_handler = TimedRotatingFileHandler(
         filename=os.path.join(LOG_DIR, "chat.txt"),
         when="midnight",
         backupCount=7,
         encoding="utf-8",
         utc=True,
-        )
+    )
     txt_handler.setLevel(logging.INFO)
     txt_formatter = logging.Formatter(
         "[%(asctime)sZ] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
@@ -50,6 +54,14 @@ if LOG_ENABLED:
     logger_txt = logging.getLogger("chat.txt")
     logger_txt.setLevel(logging.INFO)
     logger_txt.addHandler(txt_handler)
+
+    # 🔹 Console handler (shows up in Render Logs)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    if logger_json:
+        logger_json.addHandler(console_handler)
+    if logger_txt:
+        logger_txt.addHandler(console_handler)
 
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 PHONE_RE = re.compile(r"\+?\d[\d\-\s().]{7,}\d")
