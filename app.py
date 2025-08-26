@@ -431,7 +431,7 @@ def _qty_buttons_from_pricing(pricing: dict) -> List[Dict[str,str]]:
     def lb(k: str) -> int:
         b = str(k).replace("–","-")
         if "+" in b:
-            return int(b.replace("+","").split("-")[0])
+            return int(b.replace("+", "").split("-")[0])
         return int(b.split("-")[0])
 
     keys = list(one_color.keys())
@@ -1032,6 +1032,16 @@ def bot_ui(tenant: str):
     data = _load_all(tenant)
     return render_template("index.html", cfg=data["config"], faq=get_faq_items(data["faq"]), tenant=tenant)
 
+# --- QuickQuote Console page ---
+@app.route("/console/<tenant>", methods=["GET"])
+def console_ui(tenant: str):
+    """
+    Renders templates/console.html with the same per-tenant cfg you use on index.
+    Visit: /console/<tenant>  (e.g., /console/swx)
+    """
+    cfg = _load_json(tenant, "config")
+    return render_template("console.html", cfg=cfg, tenant=tenant)
+
 # Alias to support older links
 @app.route("/client/<tenant>", methods=["GET"])
 def client_alias(tenant: str):
@@ -1056,6 +1066,140 @@ def ask(tenant: str):
     resp = jsonify(result)
     resp.set_cookie("sid", sid, max_age=60*60*24*30, samesite="Lax", secure=True)
     return resp
+
+# ================================
+# >>> QuickQuote Console API v2 <<<  (UPDATED)
+# ================================
+def _console_rules(cfg: dict) -> dict:
+    c = (cfg or {}).get("console", {}) or {}
+    garments = c.get("garments") or []
+    gmap = { (g.get("key") or "").strip(): g for g in garments if g.get("key") }
+    rush_mult = float((c.get("extras") or {}).get("rush_multiplier", 1.5))
+    fold_bag = float((c.get("extras") or {}).get("fold_bag_per_shirt", 1.25))
+    garment_pct = float((c.get("markup") or {}).get("garment_pct", 0.40))
+    return {
+        "garments_map": gmap,
+        "rush_multiplier": rush_mult,
+        "fold_bag_per_shirt": fold_bag,
+        "garment_markup_pct": garment_pct,
+    }
+
+def _normalize_console_payload_v2(payload: Dict[str, Any]) -> Tuple[int, List[Dict[str,int]], Optional[str], Optional[str]]:
+    """
+    Body:
+      {"quantity":72,"placements":[{"name":"front","colors":2}], "garment_key":"g5000", "extras":{"rush":true,"fold_bag":true}}
+    Returns: (qty, locations, tier(None), garment_key)
+    """
+    qty = int(payload.get("quantity") or 0)
+    raw_places = payload.get("placements") or payload.get("locations") or []
+    locations: List[Dict[str, int]] = []
+    for it in raw_places:
+        name = (it.get("name") or it.get("location") or "").strip().lower()
+        if not name: 
+            continue
+        colors = int(it.get("colors") or 0)
+        if colors <= 0: 
+            continue
+        locations.append({"location": name, "colors": colors})
+    garment_key = (payload.get("garment_key") or "").strip() or None
+    return qty, locations, None, garment_key
+
+@app.post("/api/quote/<tenant>")
+def api_quote(tenant: str):
+    """
+    Compute a Console quote with garments, markup, fold&bag, rush.
+    Response includes internal 'cost' vs client (retail) breakdown.
+    """
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        qty, locs, _tier, gkey = _normalize_console_payload_v2(body)
+        if qty <= 0 or not locs:
+            return jsonify({"error": "Missing quantity or placements."}), 400
+
+        cfg = _load_json(tenant, "config")
+        pricing = _load_json(tenant, "pricing")
+        rules = _console_rules(cfg)
+
+        # Garment
+        if not gkey or gkey not in rules["garments_map"]:
+            return jsonify({"error":"Select a garment."}), 400
+        g = rules["garments_map"][gkey]
+        garment_cost = float(g.get("cost", 0.0))
+        if garment_cost <= 0:
+            return jsonify({"error":"Invalid garment cost."}), 400
+        garment_markup_pct = rules["garment_markup_pct"]
+        garment_client = garment_cost * (1.0 + garment_markup_pct)
+
+        # Print (retail run charges from tier table)
+        per_shirt_print = 0.0
+        per_loc = []
+        for spec in locs:
+            colors = int(spec["colors"])
+            run = _run_charge_per_shirt(pricing, qty, colors)
+            if run is None:
+                return jsonify({"error": "Pricing table missing for that color count."}), 400
+            per_shirt_print += float(run)
+            per_loc.append({
+                "location": spec["location"],
+                "colors": colors,
+                "per_shirt_run": float(run)
+            })
+
+        # Base subtotals
+        cost_per_shirt = garment_cost + per_shirt_print  # internal view (print treated as retail; no print 'cost' in v2)
+        client_per_shirt = garment_client + per_shirt_print
+
+        cost_subtotal = cost_per_shirt * qty
+        client_subtotal = client_per_shirt * qty
+
+        # Extras
+        extras = body.get("extras") or {}
+        fold_bag_on = bool(extras.get("fold_bag"))
+        rush_on = bool(extras.get("rush"))
+
+        fold_bag_per = rules["fold_bag_per_shirt"] if fold_bag_on else 0.0
+        fold_bag_total = fold_bag_per * qty
+
+        # Rush applies AFTER subtotal (on client price)
+        rush_multiplier = rules["rush_multiplier"] if rush_on else 1.0
+
+        client_grand = (client_subtotal + fold_bag_total) * rush_multiplier
+        cost_grand = cost_subtotal  # fold/bag retail-only in v2
+
+        out = {
+            "quantity": qty,
+            "locations": per_loc,
+            "params": {
+                "garment_key": gkey,
+                "garment_label": g.get("label"),
+                "garment_cost": round(garment_cost, 2),
+                "garment_markup_pct": garment_markup_pct,
+                "rush_multiplier": rush_multiplier,
+                "fold_bag_per_shirt": round(fold_bag_per, 2)
+            },
+            "costs": {
+                "print_per_shirt": round(per_shirt_print, 2),
+                "garment_cost_per_shirt": round(garment_cost, 2),
+                "garment_client_per_shirt": round(garment_client, 2),
+                "cost_subtotal": round(cost_subtotal, 2)
+            },
+            "extras": {
+                "fold_bag_per_shirt": round(fold_bag_per, 2),
+                "fold_bag_total": round(fold_bag_total, 2),
+                "rush_applied": rush_on
+            },
+            "totals": {
+                "client_subtotal": round(client_subtotal + fold_bag_total, 2),
+                "client_grand_total": round(client_grand, 2),
+                "cost_grand_total": round(cost_grand, 2)
+            }
+        }
+        return jsonify(out)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+# ================================
+# >>> End QuickQuote Console API v2
+# ================================
 
 # --- NEW: Download Quote PDF ---
 @app.route("/api/download_quote/<tenant>", methods=["POST"])

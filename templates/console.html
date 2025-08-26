@@ -1,0 +1,340 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>QuickQuote Console — {{ cfg.brand_name }}</title>
+  <style>
+    :root{
+      --btn: {{ (cfg.buttons.bg if cfg.buttons and cfg.buttons.bg else cfg.colors.accent) }};
+    }
+    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    .qqc{ display:grid; grid-template-columns: 340px 1fr; min-height:100vh; }
+    aside{ padding:16px; border-right:1px solid #eee; background:#fafafa; }
+    main{ padding:20px; }
+    h1{ margin:0 0 4px; font-size:22px; }
+    .tag{ font-size:12px; color:#666; margin-bottom:10px; }
+    .price{ margin-top:10px; padding:12px; border:1px solid #eee; border-radius:10px; background:#fff; }
+    #live-total{ font-size:28px; font-weight:700; }
+    .row{ margin:16px 0; }
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+    button.chip{ padding:10px 14px; border:1px solid #ddd; background:#fff; border-radius:999px; cursor:pointer; }
+    button.chip.active{ border-color:var(--btn); box-shadow:0 0 0 2px color-mix(in oklab,var(--btn) 30%, transparent); }
+    .grid{ display:grid; grid-template-columns: repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
+    .card{ border:1px solid #eee; border-radius:12px; padding:12px; background:#fff; }
+    .actions{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+    .btn{ padding:10px 16px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; }
+    .btn.primary{ background:var(--btn); color:#fff; border-color:var(--btn); }
+    .note{ font-size:.9rem; color:#555; }
+    .mini{ font-size:12px; color:#666; }
+    .breakdown h3{ margin:10px 0 6px; font-size:14px; }
+    .breakdown .line{ display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
+    .muted{ color:#666; }
+    .sep{ height:1px; background:#eee; margin:10px 0; }
+  </style>
+</head>
+<body>
+  <div class="qqc">
+    <aside>
+      <h1>QuickQuote Console</h1>
+      <div class="tag">Part of the ScreenPrintBot family</div>
+      <div class="price">
+        <div id="live-total">$0.00</div>
+        <div class="mini" id="live-garment">Select a garment to begin</div>
+        <div class="sep"></div>
+        <div id="live-breakdown" class="breakdown note">Waiting for inputs…</div>
+      </div>
+    </aside>
+
+    <main>
+      <!-- Step 1: Quantity -->
+      <div class="row">
+        <strong>Quantity</strong>
+        <div class="chips" id="qty-chips">
+          {% set qty_presets = (cfg.console.qty_presets if cfg.console and cfg.console.qty_presets else [12,24,36,48,72,100,150,250,500]) %}
+          {% for q in qty_presets %}
+            <button class="chip" data-qty="{{ q }}">{{ q }}</button>
+          {% endfor %}
+          <button class="chip" id="qty-other">Other…</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Garment (new) -->
+      <div class="row">
+        <strong>Garment</strong>
+        <div class="chips" id="garment-chips">
+          {% set default_garments = [
+            {'key':'g2000','label':'Gildan 2000','cost':2.89},
+            {'key':'g5000','label':'Gildan 5000','cost':2.69},
+            {'key':'nl3600','label':'Next Level 3600','cost':3.89},
+            {'key':'bc3001','label':'Bella+Canvas 3001','cost':4.09},
+            {'key':'g185','label':'Gildan Hoodie Pullover','cost':10.89},
+            {'key':'g186','label':'Gildan Hoodie Zip','cost':13.39},
+          ] %}
+          {% set garments = (cfg.console.garments if cfg.console and cfg.console.garments else default_garments) %}
+          {% for g in garments %}
+            <button class="chip" data-gkey="{{ g.key }}">{{ g.label }} — ${{ '%.2f'|format(g.cost) }}</button>
+          {% endfor %}
+        </div>
+        <div class="mini muted">Buttons show <em>shop cost</em>. Client price uses the markup in config.</div>
+      </div>
+
+      <!-- Step 3: Placements -->
+      <div class="row">
+        <strong>Placements</strong>
+        <div class="chips" id="place-chips">
+          {% set placements = (cfg.console.placements if cfg.console and cfg.console.placements else ['front','back','left_sleeve','right_sleeve']) %}
+          {% for p in placements %}
+            <button class="chip" data-place="{{ p }}">{{ p.replace('_',' ').title() }}</button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Step 4: Colors per placement -->
+      <div class="row" id="colors-section" style="display:none;">
+        <strong>Colors per placement</strong>
+        <div class="grid" id="color-grid"></div>
+      </div>
+
+      <!-- Extras (simplified) -->
+      <div class="row">
+        <strong>Extras</strong>
+        <div class="chips" id="extras-chips">
+          <button class="chip" data-extra="rush">Rush (+50% after subtotal)</button>
+          <button class="chip" data-extra="fold_bag">Fold &amp; Bag (+/shirt)</button>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn" id="reset">Reset</button>
+        <button class="btn primary" id="review">Compute</button>
+        <button class="btn" id="email">Email Estimate</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const TENANT = "{{ tenant|default('demo') }}";
+
+    // State
+    const S = {
+      qty: null,
+      garmentKey: null,
+      placements: [],
+      colors: {}, // {front:2, back:1, ...}
+      extras: { rush:false, fold_bag:false }
+    };
+
+    // Elements
+    const qtyWrap   = document.getElementById('qty-chips');
+    const garmentWrap = document.getElementById('garment-chips');
+    const placeWrap = document.getElementById('place-chips');
+    const colorGrid = document.getElementById('color-grid');
+    const colorsSec = document.getElementById('colors-section');
+    const liveTotal = document.getElementById('live-total');
+    const liveBreak = document.getElementById('live-breakdown');
+    const liveGarment = document.getElementById('live-garment');
+
+    // Helpers
+    function payload() {
+      return {
+        quantity: S.qty,
+        placements: S.placements.map(p => ({ name: p, colors: S.colors[p] || 0 })),
+        garment_key: S.garmentKey,
+        extras: { rush: S.extras.rush, fold_bag: S.extras.fold_bag }
+      };
+    }
+    function money(n){ return isFinite(n) ? `$${(+n).toFixed(2)}` : '$0.00'; }
+
+    function renderLive() {
+      if (!S.qty || !S.placements.length || !S.garmentKey) {
+        liveBreak.textContent = 'Waiting for inputs…';
+        liveTotal.textContent = '$0.00';
+        return;
+      }
+      fetch(`/api/quote/${TENANT}`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload())
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+
+        // Topline total = client grand
+        const qty = +data.quantity || 0;
+        const printPer = +data.costs.print_per_shirt || 0;
+        const garmentCostPer = +data.costs.garment_cost_per_shirt || 0;
+        const garmentClientPer = +data.costs.garment_client_per_shirt || 0;
+
+        const printTotal = printPer * qty;
+        const garmentCostTotal = garmentCostPer * qty;
+        const garmentClientTotal = garmentClientPer * qty;
+
+        const fbPer = (data.extras?.fold_bag_per_shirt) ?? 0;
+        const fbTotal = (data.extras?.fold_bag_total) ?? 0;
+        const rushApplied = !!(data.extras?.rush_applied);
+        const clientSub = +data.totals.client_subtotal || 0;
+        const clientGrand = +data.totals.client_grand_total || 0;
+        const costGrand = +data.totals.cost_grand_total || 0;
+
+        liveTotal.textContent = money(clientGrand);
+
+        const garmentLabel = data.params?.garment_label || '';
+        const garmentCost = data.params?.garment_cost;
+        const garmentMarkupPct = data.params?.garment_markup_pct;
+
+        liveGarment.textContent = garmentLabel
+          ? `${garmentLabel} — our cost $${(+garmentCost).toFixed(2)} • markup ${(garmentMarkupPct*100).toFixed(0)}%`
+          : 'Select a garment to begin';
+
+        // Breakdown HTML
+        liveBreak.innerHTML = `
+          <h3>Print</h3>
+          <div class="line"><span>Run charges (${qty} pcs)</span><span>${money(printTotal)}</span></div>
+
+          <h3>Garment</h3>
+          <div class="line"><span>Our cost (${qty}× ${money(garmentCostPer)})</span><span>${money(garmentCostTotal)}</span></div>
+          <div class="line"><span>Client (${qty}× ${money(garmentClientPer)})</span><span>${money(garmentClientTotal)}</span></div>
+
+          <h3>Extras</h3>
+          <div class="line"><span>Fold &amp; Bag ${fbPer ? `(${qty}× ${money(fbPer)})` : ''}</span><span>${fbPer ? money(fbTotal) : '$0.00'}</span></div>
+          <div class="line"><span>Rush</span><span>${rushApplied ? 'Applied' : '—'}</span></div>
+
+          <div class="sep"></div>
+
+          <div class="line"><strong>Client Subtotal</strong><strong>${money(clientSub)}</strong></div>
+          <div class="line"><span class="muted">Our cost (est.)</span><span class="muted">${money(costGrand)}</span></div>
+          <div class="line"><strong>Client Total</strong><strong>${money(clientGrand)}</strong></div>
+        `;
+
+        window.__lastQuote = data;
+        window.__lastPayload = payload();
+      })
+      .catch(err => {
+        liveBreak.textContent = 'Error computing quote';
+        console.error(err);
+      });
+    }
+
+    function toggleChip(btn){
+      btn.classList.toggle('active');
+    }
+
+    // Quantity
+    qtyWrap.addEventListener('click', e => {
+      const btn = e.target.closest('button.chip');
+      if (!btn) return;
+      if (btn.id === 'qty-other') {
+        const v = window.prompt('Enter quantity'); // keep simple for v1
+        const n = parseInt(v || '', 10);
+        if (!isFinite(n) || n <= 0) return;
+        S.qty = n;
+        [...qtyWrap.querySelectorAll('.chip')].forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      } else {
+        [...qtyWrap.querySelectorAll('.chip')].forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        S.qty = parseInt(btn.dataset.qty, 10);
+      }
+      renderLive();
+    });
+
+    // Garments (single-select)
+    garmentWrap.addEventListener('click', e => {
+      const btn = e.target.closest('button.chip');
+      if (!btn) return;
+      S.garmentKey = btn.dataset.gkey || null;
+      [...garmentWrap.querySelectorAll('.chip')].forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderLive();
+    });
+
+    // Placements
+    placeWrap.addEventListener('click', e => {
+      const btn = e.target.closest('button.chip');
+      if (!btn) return;
+      const p = btn.dataset.place;
+      toggleChip(btn);
+      if (btn.classList.contains('active')) {
+        if (!S.placements.includes(p)) S.placements.push(p);
+      } else {
+        S.placements = S.placements.filter(x => x !== p);
+        delete S.colors[p];
+      }
+      renderColorRows();
+      renderLive();
+    });
+
+    function renderColorRows(){
+      colorsSec.style.display = S.placements.length ? 'block' : 'none';
+      colorGrid.innerHTML = '';
+      S.placements.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">${p.replace('_',' ').toUpperCase()}</div>`;
+        const row = document.createElement('div');
+        row.className = 'chips';
+        [1,2,3,4,5,6].forEach(c => {
+          const b = document.createElement('button');
+          b.className = 'chip';
+          b.textContent = `${c} color${c>1?'s':''}`;
+          b.dataset.c = c;
+          if (S.colors[p] === c) b.classList.add('active');
+          b.addEventListener('click', () => {
+            row.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            S.colors[p] = c;
+            renderLive();
+          });
+          row.appendChild(b);
+        });
+        const more = document.createElement('button');
+        more.className = 'chip';
+        more.textContent = '6+';
+        more.addEventListener('click', () => {
+          const v = window.prompt('Enter color count');
+          const n = parseInt(v || '', 10);
+          if (!isFinite(n) || n < 1) return;
+          row.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+          more.classList.add('active');
+          S.colors[p] = n;
+          renderLive();
+        });
+        row.appendChild(more);
+        card.appendChild(row);
+        colorGrid.appendChild(card);
+      });
+    }
+
+    // Extras
+    document.getElementById('extras-chips').addEventListener('click', e => {
+      const btn = e.target.closest('button.chip'); if (!btn) return;
+      const key = btn.dataset.extra;
+      btn.classList.toggle('active');
+      if (key === 'rush') S.extras.rush = btn.classList.contains('active');
+      if (key === 'fold_bag') S.extras.fold_bag = btn.classList.contains('active');
+      renderLive();
+    });
+
+    // Actions
+    document.getElementById('reset').addEventListener('click', () => {
+      Object.assign(S, { qty:null, garmentKey:null, placements:[], colors:{}, extras:{ rush:false, fold_bag:false }});
+      document.querySelectorAll('.chip.active').forEach(b => b.classList.remove('active'));
+      colorGrid.innerHTML = ''; colorsSec.style.display = 'none';
+      liveTotal.textContent = '$0.00'; liveBreak.textContent = 'Waiting for inputs…';
+      liveGarment.textContent = 'Select a garment to begin';
+    });
+
+    document.getElementById('review').addEventListener('click', () => {
+      if (!window.__lastQuote) return alert('Please complete the steps first.');
+      alert(`Client Total: ${liveTotal.textContent}\n(You can style a proper review modal later)`);
+    });
+
+    // (Email flows will be handled later; keeping button for UI parity)
+    document.getElementById('email').addEventListener('click', async () => {
+      alert('Emailing is coming later. For now, copy the totals or download via your main app.');
+    });
+  </script>
+</body>
+</html>

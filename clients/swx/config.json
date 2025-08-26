@@ -76,5 +76,27 @@
   "printing": {
     "max_colors": 12,
     "placements": ["front", "back", "left_sleeve", "right_sleeve"]
+  },
+
+  "console": {
+    "title": "QuickQuote Console — part of the ScreenPrintBot family",
+    "qty_presets": [12, 24, 36, 48, 72, 100, 150, 250, 500],
+    "placements": ["front", "back", "left_sleeve", "right_sleeve"],
+
+    "garments": [
+      { "key": "g2000",  "label": "Gildan 2000",             "cost": 2.89 },
+      { "key": "g5000",  "label": "Gildan 5000",             "cost": 2.69 },
+      { "key": "nl3600", "label": "Next Level 3600",         "cost": 3.89 },
+      { "key": "bc3001", "label": "Bella+Canvas 3001",       "cost": 4.09 },
+      { "key": "g185",   "label": "Gildan Hoodie Pullover",  "cost": 10.89 },
+      { "key": "g186",   "label": "Gildan Hoodie Zip",       "cost": 13.39 }
+    ],
+
+    "garment_markup_pct": 0.40,
+
+    "extras": {
+      "rush_multiplier": 0.50,
+      "fold_bag_per_shirt": 1.25
+    }
   }
 }

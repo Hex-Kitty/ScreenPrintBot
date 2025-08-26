@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.0-beta] - 2025-08-25
+### Added
+- **QuickQuote Console MVP**: First live deploy to Render at `app.screenprintbot.com`.
+- **Chat History on Index Page**: Scrollable conversation log so users can view their session inline.
+
+### Changed
+- Polished quoting flow with corrected order and min-qty warnings.
+- Restored FAQ/greeting intents with improved normalization.
+- Verified multi-user sessions running smoothly in production.
+
+### Known Limitations
+- Email sending not yet implemented (Postmark planned).
+- Logging is minimal/ephemeral (no dashboard yet).
+
 ## [0.1.0-beta] - 2025-08-21
 ### Added
 - Initial Render deployment prep (Starter plan to avoid cold starts).
