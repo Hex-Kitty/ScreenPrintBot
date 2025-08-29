@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.3.0-beta] - 2025-08-29
+### Added
+- **Sidebar Breakdown Upgrade**: Garment, Ink/Print, and Extras now itemized with customer-facing pricing and per-placement details.
+- **Dynamic Color Buttons**: Placement color counts now driven by config (`max_colors_per_placement`) with clean 1–10 layout (no more “6+”).
+- **Per-Shop Minimum Quantities**: Configurable screen-print minimums per shop (e.g., 12 vs 48). If quantity is below min, console suggests DTF instead of quoting.
+- **UI Polish**: Gray backgrounds on cards, clearer spacing, per-placement labels, and Beta 0.3 badge for tracking updates.
+
+### Changed
+- Fixed quoting math to align with pricing.json (e.g., 100 shirts: 1c = $1.68, 2c = $2.53).
+- Refined breakdown to show garment markup price instead of shop cost.
+- “Compute” button relabeled to **Quick Quote** for clarity.
+
+### Known Limitations
+- Email sending not yet implemented (Postmark integration planned).
+
 ## [0.2.0-beta] - 2025-08-25
 ### Added
 - **QuickQuote Console MVP**: First live deploy to Render at `app.screenprintbot.com`.

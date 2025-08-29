@@ -1,69 +1,117 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Choose a Bot</title>
   <style>
-    * { box-sizing: border-box; }
-    body {
+    :root{
+      --bg:#f5f5f5;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:#6b7280;
+      --btn:#ef4444;         /* matches console red */
+      --btn-hover:#b91c1c;
+      --ring: color-mix(in oklab, var(--btn) 30%, transparent);
+      --radius:12px;
+      --shadow:0 2px 12px rgba(0,0,0,.10);
+    }
+    *{box-sizing:border-box}
+    body{
       font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-      background-color: #f5f5f5;
+      margin:0; padding:20px;
+      text-align:center;
+      background:var(--bg); color:var(--text);
     }
-    h1 { margin-bottom: 30px; }
-    .tenant-list {
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;
-    }
-    .tenant-card {
-      display: block;
-      background: #fff;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,.1);
-      width: 260px;                 /* card width */
-      text-align: center;
-      text-decoration: none;
-      color: inherit;
-      transition: transform .2s ease;
-    }
-    .tenant-card:hover { transform: translateY(-3px); }
+    h1{margin:0 0 10px;}
+    .muted{color:var(--muted)}
 
-    /* HARD CLAMP */
-    .logo-wrap {
-      width: 100%;                  /* same as card width */
-      height: 90px;                 /* fixed logo area */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;             /* no bleed, horiz or vert */
-      margin-bottom: 12px;
+    /* Hero */
+    .hero{
+      max-width:1100px; margin:0 auto 24px; text-align:left;
+      background:var(--card); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.08);
+      border:1px solid #eee; padding:18px 20px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
     }
-    .logo-wrap img {
-      max-width: 100%;              /* never wider than the box */
-      max-height: 90px;             /* never taller than the box */
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      display: block;
+    .hero h2{margin:0 0 6px; font-size:20px}
+    .cta{
+      display:inline-flex; align-items:center; gap:8px;
+      background:var(--btn); color:#fff; border:1px solid var(--btn);
+      padding:10px 16px; border-radius:10px; font-weight:700; cursor:pointer;
+    }
+    .cta:hover{background:var(--btn-hover); border-color:var(--btn-hover)}
+    .cta.secondary{background:#fff; color:#111; border-color:#ddd; font-weight:600}
+    .cta.secondary:hover{box-shadow:0 0 0 3px var(--ring)}
+
+    /* Grid of tenants */
+    .tenant-list{
+      max-width:1100px; margin:0 auto;
+      display:flex; flex-wrap:wrap; justify-content:center; gap:20px;
+    }
+    .tenant-card{
+      background:#fff; padding:16px; border-radius:12px; box-shadow:var(--shadow);
+      width:260px; text-align:center; color:inherit; text-decoration:none;
+      transition:transform .2s ease; border:1px solid #eee;
+    }
+    .tenant-card:hover{ transform: translateY(-3px); }
+
+    /* HARD CLAMP (kept from your current page) */
+    .logo-wrap{
+      width:100%; height:90px; display:flex; align-items:center; justify-content:center;
+      overflow:hidden; margin-bottom:12px;
+    }
+    .logo-wrap img{
+      max-width:100%; max-height:90px; width:auto; height:auto; object-fit:contain; display:block;
     }
 
-    .tenant-card h2 { font-size: 1.2rem; margin: 0; }
+    .tenant-card h2{ font-size:1.2rem; margin:0 0 8px; }
+
+    /* Per-card buttons */
+    .btn-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .mini-btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:8px 12px; border-radius:999px; border:1px solid #ddd; background:#fff; cursor:pointer;
+      font-size:13px;
+    }
+    .mini-btn.primary{ background:var(--btn); border-color:var(--btn); color:#fff; }
+    .mini-btn.primary:hover{ background:var(--btn-hover); border-color:var(--btn-hover); }
+    .mini-btn:hover{ box-shadow:0 0 0 3px var(--ring); }
   </style>
 </head>
 <body>
+  {% set default_console =
+      (tenants | selectattr('id','equalto','swx') | list | first)
+      or (tenants[0] if tenants else None) %}
+
+  <div class="hero">
+    <div>
+      <h2>QuickQuote Console</h2>
+      <div class="muted">Price garments & prints in seconds — per-placement ink charges, garment markup, rush & extras.</div>
+    </div>
+    <div>
+      {% if default_console %}
+        <a class="cta" href="{{ url_for('console_ui', tenant=default_console.id) }}">Try the QuickQuote Console →</a>
+      {% else %}
+        <span class="muted">No shops configured</span>
+      {% endif %}
+    </div>
+  </div>
+
   <h1>Select a Demo</h1>
+
   <div class="tenant-list">
     {% for tenant in tenants %}
-      <a href="{{ url_for('bot_ui', tenant=tenant.id) }}" class="tenant-card">
+      <div class="tenant-card">
         <div class="logo-wrap">
           <img src="{{ tenant.logo }}" alt="{{ tenant.name }} logo"
                onerror="this.src='/static/logos/default.png'">
         </div>
         <h2>{{ tenant.name }}</h2>
-      </a>
+        <div class="btn-row">
+          <a class="mini-btn" href="{{ url_for('bot_ui', tenant=tenant.id) }}">Open Chatbot</a>
+          <a class="mini-btn primary" href="{{ url_for('console_ui', tenant=tenant.id) }}">QuickQuote Console</a>
+        </div>
+      </div>
     {% endfor %}
   </div>
 </body>

@@ -67,14 +67,14 @@
   "garments": {
     "tiers_enabled": true,
     "tiers": {
-      "good":   { "label": "Gildan 5000",       "blank_price": 3.00 },
-      "better": { "label": "Hanes Nano",        "blank_price": 4.00 },
-      "best":   { "label": "Bella+Canvas 3001", "blank_price": 5.00 }
+      "good": { "label": "Gildan 5000", "blank_price": 3.00 },
+      "better": { "label": "Hanes Nano", "blank_price": 4.00 },
+      "best": { "label": "Bella+Canvas 3001", "blank_price": 5.00 }
     }
   },
 
   "printing": {
-    "max_colors": 12,
+    "max_colors": 10,
     "placements": ["front", "back", "left_sleeve", "right_sleeve"]
   },
 
@@ -84,19 +84,40 @@
     "placements": ["front", "back", "left_sleeve", "right_sleeve"],
 
     "garments": [
-      { "key": "g2000",  "label": "Gildan 2000",             "cost": 2.89 },
-      { "key": "g5000",  "label": "Gildan 5000",             "cost": 2.69 },
-      { "key": "nl3600", "label": "Next Level 3600",         "cost": 3.89 },
-      { "key": "bc3001", "label": "Bella+Canvas 3001",       "cost": 4.09 },
-      { "key": "g185",   "label": "Gildan Hoodie Pullover",  "cost": 10.89 },
-      { "key": "g186",   "label": "Gildan Hoodie Zip",       "cost": 13.39 }
+      { "key": "g2000", "label": "Gildan 2000", "cost": 2.89 },
+      { "key": "g5000", "label": "Gildan 5000", "cost": 2.69 },
+      { "key": "nl3600", "label": "Next Level 3600", "cost": 3.89 },
+      { "key": "bc3001", "label": "Bella+Canvas 3001", "cost": 4.09 },
+      { "key": "g185", "label": "Gildan Hoodie Pullover", "cost": 10.89 },
+      { "key": "g186", "label": "Gildan Hoodie Zip", "cost": 13.39 }
     ],
 
     "garment_markup_pct": 0.40,
 
     "extras": {
       "rush_multiplier": 0.50,
-      "fold_bag_per_shirt": 1.25
+      "fold_bag_per_shirt": 1.25,
+      "names_per_shirt": 7.00,
+      "numbers_per_shirt": 7.00,
+      "heat_press_per_shirt": 2.00,
+      "tagging_per_shirt": 0.50
+    },
+
+    "screen_charges": {
+      "enabled": false,
+      "price_per_screen": 15.00,
+      "count_white_underbase": true,
+      "waive_at_qty": null,
+      "max_screens": null
+    },
+
+    "show_admin_controls": true,
+
+    "max_colors_per_placement": {
+      "front": 10,
+      "back": 10,
+      "left_sleeve": 10,
+      "right_sleeve": 10
     }
   }
 }

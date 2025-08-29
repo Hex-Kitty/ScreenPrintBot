@@ -8,35 +8,98 @@
     :root{
       --btn: {{ (cfg.buttons.bg if cfg.buttons and cfg.buttons.bg else cfg.colors.accent) }};
     }
-    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    * { box-sizing: border-box; }
+    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#111; }
     .qqc{ display:grid; grid-template-columns: 340px 1fr; min-height:100vh; }
     aside{ padding:16px; border-right:1px solid #eee; background:#fafafa; }
     main{ padding:20px; }
-    h1{ margin:0 0 4px; font-size:22px; }
+    h1{ margin:0 0 4px; font-size:26px; line-height:1.1; display:flex; align-items:center; gap:8px; }
     .tag{ font-size:12px; color:#666; margin-bottom:10px; }
-    .price{ margin-top:10px; padding:12px; border:1px solid #eee; border-radius:10px; background:#fff; }
+
+    /* Beta badge */
+.beta-badge {
+  display:inline-block;
+  font-family: "Courier New", Courier, monospace; /* tech vibe */
+  font-size:12px;
+  font-weight:500;
+  padding:2px 8px;
+  border-radius:4px;
+  background:#374151;   /* dark gray background */
+  color:#e5e7eb;        /* light gray text */
+  border:1px solid #6b7280;
+  white-space:nowrap;   /* force one line only */
+}
+
+    /* Price panel */
+    .price{
+      margin-top:10px; padding:12px;
+      border:1px solid #eee; border-radius:10px; background:#f9f9f9;
+    }
     #live-total{ font-size:28px; font-weight:700; }
+
     .row{ margin:16px 0; }
     .chips{ display:flex; flex-wrap:wrap; gap:8px; }
-    button.chip{ padding:10px 14px; border:1px solid #ddd; background:#fff; border-radius:999px; cursor:pointer; }
-    button.chip.active{ border-color:var(--btn); box-shadow:0 0 0 2px color-mix(in oklab,var(--btn) 30%, transparent); }
-    .grid{ display:grid; grid-template-columns: repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
+
+    /* Soft gray chips by default, filled on active */
+    button.chip{
+      padding:10px 14px; border:1px solid #ddd; background:#f8f9fa; border-radius:999px;
+      cursor:pointer; transition: all .15s ease; user-select:none;
+    }
+    button.chip:hover{ background:#eee; }
+    button.chip.active{
+      color:#fff; background:var(--btn); border-color:var(--btn);
+      box-shadow:0 0 0 2px color-mix(in oklab,var(--btn) 30%, transparent);
+    }
+
+    .grid{ display:grid; grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); gap:12px; }
     .card{ border:1px solid #eee; border-radius:12px; padding:12px; background:#fff; }
+    .card > .card-title { font-weight:700; margin-bottom:8px; }
+
     .actions{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
-    .btn{ padding:10px 16px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; }
+    .btn{ padding:10px 16px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; transition: background .15s ease; }
+    .btn:hover{ background:#f5f5f5; }
     .btn.primary{ background:var(--btn); color:#fff; border-color:var(--btn); }
+
     .note{ font-size:.9rem; color:#555; }
     .mini{ font-size:12px; color:#666; }
-    .breakdown h3{ margin:10px 0 6px; font-size:14px; }
+    .breakdown h3{
+      margin:10px 0 6px; font-size:14px; font-weight:600;
+      background:#f2f2f2; padding:4px 6px; border-radius:6px;
+    }
     .breakdown .line{ display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
     .muted{ color:#666; }
     .sep{ height:1px; background:#eee; margin:10px 0; }
+    .icon-btn{ border:0; background:transparent; cursor:help; font-size:14px; }
+    #screens-counter.active{ border:1px solid #333; padding:2px 6px; border-radius:6px; }
+
+    /* Split 1–5 left, 6–10 right when ≥6 available */
+    .color-columns{ display:grid; gap:8px; }
+    .color-columns.one{ grid-template-columns: 1fr; grid-auto-flow: row; }
+    .color-columns.two{
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      grid-auto-flow: column;
+      grid-template-rows: repeat(5, auto);
+    }
+    .color-columns .chip{ width:100%; text-align:center; }
+
+    /* Simple modal (dialog) */
+    dialog#dtfModal {
+      border:0; border-radius:12px; padding:0; max-width:520px; width:92vw;
+      box-shadow: 0 10px 40px rgba(0,0,0,.25);
+    }
+    dialog#dtfModal::backdrop { background: rgba(0,0,0,.35); }
+    .modal-body{ padding:20px 22px 10px 22px; }
+    .modal-title{ font-weight:800; font-size:24px; margin:4px 0 10px; }
+    .modal-actions{ display:flex; justify-content:flex-end; gap:10px; padding:0 22px 18px; }
   </style>
 </head>
 <body>
   <div class="qqc">
     <aside>
-      <h1>QuickQuote Console</h1>
+      <h1>
+        QuickQuote Console
+        <span class="beta-badge">Beta 0.3</span>
+      </h1>
       <div class="tag">Part of the ScreenPrintBot family</div>
       <div class="price">
         <div id="live-total">$0.00</div>
@@ -59,19 +122,11 @@
         </div>
       </div>
 
-      <!-- Step 2: Garment (new) -->
+      <!-- Step 2: Garment -->
       <div class="row">
         <strong>Garment</strong>
         <div class="chips" id="garment-chips">
-          {% set default_garments = [
-            {'key':'g2000','label':'Gildan 2000','cost':2.89},
-            {'key':'g5000','label':'Gildan 5000','cost':2.69},
-            {'key':'nl3600','label':'Next Level 3600','cost':3.89},
-            {'key':'bc3001','label':'Bella+Canvas 3001','cost':4.09},
-            {'key':'g185','label':'Gildan Hoodie Pullover','cost':10.89},
-            {'key':'g186','label':'Gildan Hoodie Zip','cost':13.39},
-          ] %}
-          {% set garments = (cfg.console.garments if cfg.console and cfg.console.garments else default_garments) %}
+          {% set garments = (cfg.console.garments if cfg.console and cfg.console.garments else []) %}
           {% for g in garments %}
             <button class="chip" data-gkey="{{ g.key }}">{{ g.label }} — ${{ '%.2f'|format(g.cost) }}</button>
           {% endfor %}
@@ -92,249 +147,607 @@
 
       <!-- Step 4: Colors per placement -->
       <div class="row" id="colors-section" style="display:none;">
-        <strong>Colors per placement</strong>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <strong>Colors per placement</strong>
+          <span id="screens-counter">Screens: included</span>
+          <button id="screens-tip" class="icon-btn" title="Loading…">ⓘ</button>
+          <label id="waive-screens-wrap" class="mini" style="display:none;">
+            <input type="checkbox" id="waive-screens-cb"> Waive screens (admin)
+          </label>
+        </div>
         <div class="grid" id="color-grid"></div>
       </div>
 
-      <!-- Extras (simplified) -->
+      <!-- Extras -->
+      {% set x = cfg.console.extras or {} %}
       <div class="row">
         <strong>Extras</strong>
         <div class="chips" id="extras-chips">
-          <button class="chip" data-extra="rush">Rush (+50% after subtotal)</button>
-          <button class="chip" data-extra="fold_bag">Fold &amp; Bag (+/shirt)</button>
+          {% set rush_mult = (x.rush_multiplier if x.rush_multiplier is not none else 0.5) %}
+          <button class="chip" data-extra="rush" title="Rush: +{{ (rush_mult*100)|round(0)|int }}% after subtotal">
+            Rush (+{{ (rush_mult*100)|round(0)|int }}% after subtotal)
+          </button>
+
+          {% set fb = (x.fold_bag_per_shirt if x.fold_bag_per_shirt is not none else 0) %}
+          <button class="chip" data-extra="fold_bag" title="Fold &amp; Bag: +${{ '%.2f'|format(fb) }} per shirt">
+            Fold &amp; Bag (+/shirt)
+          </button>
+
+          {% set nm = (x.names_per_shirt if x.names_per_shirt is not none else 0) %}
+          <button class="chip" data-extra="names" title="Names: +${{ '%.2f'|format(nm) }} per shirt">
+            Names (+/shirt)
+          </button>
+
+          {% set nb = (x.numbers_per_shirt if x.numbers_per_shirt is not none else 0) %}
+          <button class="chip" data-extra="numbers" title="Numbers: +${{ '%.2f'|format(nb) }} per shirt">
+            Numbers (+/shirt)
+          </button>
+
+          {% set hp = (x.heat_press_per_shirt if x.heat_press_per_shirt is not none else 0) %}
+          <button class="chip" data-extra="heat_press" title="Heat Press: +${{ '%.2f'|format(hp) }} per shirt">
+            Heat Press (+/shirt)
+          </button>
+
+          {% set tg = (x.tagging_per_shirt if x.tagging_per_shirt is not none else 0) %}
+          <button class="chip" data-extra="tagging" title="Tagging: +${{ '%.2f'|format(tg) }} per shirt">
+            Tagging (+/shirt)
+          </button>
         </div>
       </div>
 
       <!-- Actions -->
       <div class="actions">
         <button class="btn" id="reset">Reset</button>
-        <button class="btn primary" id="review">Compute</button>
+        <button class="btn primary" id="quick-quote">Quick Quote</button>
         <button class="btn" id="email">Email Estimate</button>
       </div>
     </main>
   </div>
 
-  <script>
-    const TENANT = "{{ tenant|default('demo') }}";
+  <!-- DTF modal -->
+  <dialog id="dtfModal">
+    <div class="modal-body">
+      <div class="modal-title">DTF recommended for small runs</div>
+      <div class="note" style="font-size:16px;">
+        Screen print minimum is <strong>48</strong>. For quantities below 48, we recommend DTF transfers.
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn primary" id="dtfOk">OK</button>
+    </div>
+  </dialog>
 
-    // State
-    const S = {
-      qty: null,
-      garmentKey: null,
-      placements: [],
-      colors: {}, // {front:2, back:1, ...}
-      extras: { rush:false, fold_bag:false }
+  <script>
+  const TENANT = "{{ tenant|default('demo') }}";
+  const SC_CFG = {{ (cfg.console.screen_charges or {})|tojson }};
+  const SHOW_ADMIN = {{ (cfg.console.show_admin_controls if cfg.console and cfg.console.show_admin_controls else false)|tojson }};
+  const EXTRAS_CFG = {{ (cfg.console.extras or {})|tojson }}; // per-shirt rates + rush multiplier
+  const MAX_COLORS_DEFAULT = {{ (cfg.console.max_colors if cfg.console and cfg.console.max_colors else 6)|tojson }};
+  const MAX_COLORS_PER_PL  = {{ (cfg.console.max_colors_per_placement if cfg.console and cfg.console.max_colors_per_placement else {})|tojson }};
+  const MIN_QTY_SCREENPRINT = 48;
+
+  // ---------- State ----------
+  const S = {
+    qty: null,
+    garmentKey: null,
+    placements: [],
+    colors: {},
+    extras: { rush:false, fold_bag:false, names:false, numbers:false, heat_press:false, tagging:false },
+    adminWaiveScreens: false
+  };
+
+  // ---------- Elements ----------
+  const qtyWrap   = document.getElementById('qty-chips');
+  const garmentWrap = document.getElementById('garment-chips');
+  const placeWrap = document.getElementById('place-chips');
+  const colorGrid = document.getElementById('color-grid');
+  const colorsSec = document.getElementById('colors-section');
+  const liveTotal = document.getElementById('live-total');
+  const liveBreak = document.getElementById('live-breakdown');
+  const liveGarment = document.getElementById('live-garment');
+  const screensCounter = document.getElementById('screens-counter');
+  const waiveWrap = document.getElementById('waive-screens-wrap');
+  const waiveCb = document.getElementById('waive-screens-cb');
+  const screensTip = document.getElementById('screens-tip');
+  const dtfDialog = document.getElementById('dtfModal');
+  const dtfOk = document.getElementById('dtfOk');
+
+  // ---------- Helpers ----------
+  function esc(s){
+    return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function toNumOrNull(v){
+    if (typeof v === 'number' && isFinite(v)) return v;
+    if (typeof v === 'string'){
+      const n = parseFloat(v.replace(/[^\d.-]/g,''));
+      return isFinite(n) ? n : null;
+    }
+    return null;
+  }
+  function money(n){
+    const num = toNumOrNull(n);
+    return Number.isFinite(num) ? `$${num.toFixed(2)}` : '$0.00';
+  }
+  function selectedPlacementsWithColors(){
+    return S.placements
+      .map(p => ({ name: p, colors: S.colors[p] || 0 }))
+      .filter(pl => pl.colors > 0);
+  }
+  function isReady(){
+    return Number.isFinite(S.qty) && S.qty > 0
+        && !!S.garmentKey
+        && selectedPlacementsWithColors().length > 0;
+  }
+  function maxColorsFor(placement){
+    return MAX_COLORS_PER_PL?.[placement] ?? MAX_COLORS_DEFAULT ?? 6;
+  }
+
+  // Tooltip/init
+  (function initScreensUI(){
+    const enabled = !!SC_CFG.enabled;
+    const per = SC_CFG.price_per_screen ?? 0;
+    const ub = SC_CFG.count_white_underbase ? ' (underbase counts)' : '';
+    const waiveAt = SC_CFG.waive_at_qty ? `; auto-waived ≥ ${SC_CFG.waive_at_qty}` : '';
+    screensTip.title = enabled ? `Screen charges: $${per.toFixed(2)} per screen${ub}${waiveAt}` : 'Screens included in price (no separate screen fees).';
+    if (SHOW_ADMIN) waiveWrap.style.display = 'inline';
+    if (!enabled) {
+      screensCounter.textContent = 'Screens: included';
+      screensCounter.classList.remove('active');
+    }
+  })();
+
+  // ---------- Request payload ----------
+  function payload() {
+    return {
+      quantity: S.qty,
+      placements: selectedPlacementsWithColors(),   // only send valid placements
+      garment_key: S.garmentKey,
+      extras: S.extras,
+      adminWaiveScreens: S.adminWaiveScreens
+    };
+  }
+
+  // ---------- Deep-scan for server-provided line items ----------
+  function findLineItemBuckets(data) {
+    const looksLikeLine = (o) => {
+      if (!o || typeof o !== 'object') return false;
+      const label = o.label ?? o.title ?? o.name ?? o.desc ?? o.description;
+      const amt   = o.amount ?? o.total ?? o.price ?? o.value ?? o.extended ?? o.ext;
+      return (label != null) && (amt != null);
+    };
+    const toLines = (arr, groupHint='') => arr
+      .filter(x => x && typeof x === 'object')
+      .map(x => ({
+        label: x.label ?? x.title ?? x.name ?? x.desc ?? x.description ?? '',
+        amount: x.amount ?? x.total ?? x.price ?? x.value ?? x.extended ?? x.ext ?? '',
+        meta: x.meta ?? x.note ?? x.notes ?? x.subtitle ?? '',
+        group: x.group ?? x.category ?? x.section ?? groupHint ?? ''
+      }));
+
+    const queue = [data];
+    const found = [];
+    const seen  = new Set();
+    let safety  = 0;
+
+    while (queue.length && safety++ < 800) {
+      const node = queue.shift();
+      if (!node || typeof node !== 'object') continue;
+      if (seen.has(node)) continue; seen.add(node);
+
+      if (Array.isArray(node)) {
+        if (node.length && node.every(it => typeof it === 'object')) {
+          const liney = node.filter(looksLikeLine);
+          if (liney.length) found.push({ group: '', lines: toLines(liney) });
+        }
+        node.forEach(child => (child && typeof child === 'object') && queue.push(child));
+        continue;
+      }
+
+      for (const [k,v] of Object.entries(node)) {
+        if (Array.isArray(v) && v.length) {
+          const liney = v.filter(looksLikeLine);
+          if (liney.length) {
+            const groupName = k.replace(/[_-]/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
+            found.push({ group: groupName, lines: toLines(liney, k) });
+          }
+        } else if (v && typeof v === 'object') {
+          queue.push(v);
+        }
+      }
+    }
+    return found;
+  }
+
+  // ---------- Synthesize a breakdown when server doesn't provide one ----------
+  function synthesizeBreakdownFromTotals(data){
+    const qty   = toNumOrNull(data.quantity) ?? toNumOrNull(S?.qty) ?? 0;
+
+    // Garment prices
+    const label     = data.params?.garment_label || 'Garment';
+    const shopCost  = toNumOrNull(data.params?.garment_cost) ?? 0;                 // our cost
+    const markupPct = toNumOrNull(data.params?.garment_markup_pct) ?? 0;           // e.g., 0.40
+    const custUnit  = +(shopCost * (1 + (markupPct || 0))).toFixed(2);             // customer price per shirt
+    const garmentsTotal = +(qty * custUnit).toFixed(2);
+
+    // Totals
+    let rushFee = toNumOrNull(
+      data.totals?.rush_fee ??
+      data.totals?.rush ??
+      data.totals?.rush_total ??
+      data.totals?.client_rush ??
+      data.extras?.rush_amount
+    ) ?? 0;
+
+    const tax     = toNumOrNull(data.totals?.tax) ?? 0;
+    let subtotal  = toNumOrNull(data.totals?.client_subtotal ?? data.totals?.subtotal);
+    if (subtotal == null) {
+      const grand = toNumOrNull(
+        data.totals?.client_grand_total ?? data.totals?.grand_total ?? data.totals?.total
+      ) ?? 0;
+      subtotal = +(grand - rushFee - tax).toFixed(2);
+    }
+
+    // If rush missing but toggle+multiplier present, derive it from subtotal
+    const rushPct = toNumOrNull(EXTRAS_CFG?.rush_multiplier) ?? 0;
+    if ((!rushFee || rushFee <= 0) && S.extras?.rush && rushPct > 0 && subtotal != null) {
+      rushFee = +(subtotal * rushPct).toFixed(2);
+    }
+
+    // Screens
+    const screensIncluded = !!data.screen_charges?.waived || !data.screen_charges;
+    const screensTotal = (!screensIncluded && toNumOrNull(data.screen_charges?.total))
+      ? +toNumOrNull(data.screen_charges.total).toFixed(2)
+      : 0;
+
+    const lines = [];
+
+    // Garment section (customer price)
+    if (qty && custUnit) {
+      lines.push({ group:'Garment', label: `${label} (${qty} × ${money(custUnit)})`, amount: garmentsTotal });
+    }
+
+    // ---- Ink/Print: prefer actual server per-placement costs when present ----
+    const serverLocs = Array.isArray(data.locations) ? data.locations : [];
+    if (serverLocs.length) {
+      serverLocs.forEach(loc => {
+        const unit = toNumOrNull(loc.per_shirt_run) ?? 0;
+        const locTotal = +(unit * qty).toFixed(2);
+        const title = String(loc.location || '').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
+        const colors = toNumOrNull(loc.colors) ?? 0;
+        lines.push({
+          group: 'Ink/Print',
+          label: `${title} — ${colors} color${colors>1?'s':''} (${qty} × ${money(unit)})`,
+          amount: locTotal
+        });
+      });
+    } else {
+      // Fallback: infer print-only from totals and split among selected placements
+      const extrasSumFromTotals =
+        Object.entries(data.extras || {})
+          .filter(([k,v]) => /_total$/i.test(k) && toNumOrNull(v) > 0)
+          .reduce((s, [,v]) => s + (toNumOrNull(v) || 0), 0);
+
+      let printOnlyTotal = +(subtotal - garmentsTotal - screensTotal - extrasSumFromTotals).toFixed(2);
+      if (printOnlyTotal < 0 && Math.abs(printOnlyTotal) < 0.02) printOnlyTotal = 0;
+
+      const placementsArr = (S?.placements || [])
+        .map(name => ({ name, colors: S.colors?.[name] || 0 }))
+        .filter(p => p.colors > 0);
+
+      if (placementsArr.length === 0) {
+        const unit = qty ? +(printOnlyTotal / qty).toFixed(2) : 0;
+        lines.push({ group:'Ink/Print', label: `Prints (${qty} × ${money(unit)})`, amount: printOnlyTotal });
+      } else {
+        const allSame = placementsArr.every(p => p.colors === placementsArr[0].colors);
+        let weights;
+        if (allSame) {
+          const w = 1 / placementsArr.length;
+          weights = placementsArr.map(() => w);
+        } else {
+          const sumC = placementsArr.reduce((s,p)=> s + (p.colors||0), 0) || 1;
+          weights = placementsArr.map(p => (p.colors||0) / sumC);
+        }
+        placementsArr.forEach((p,i) => {
+          const w = weights[i];
+          const locTotal = +(printOnlyTotal * w).toFixed(2);
+          const locUnit  = qty ? +(locTotal / qty).toFixed(2) : 0;
+          const title = p.name.replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
+          const meta  = allSame ? '' : 'estimated split';
+          lines.push({
+            group: 'Ink/Print',
+            label: `${title} — ${p.colors} color${p.colors>1?'s':''} (${qty} × ${money(locUnit)})`,
+            amount: locTotal,
+            ...(meta ? { meta } : {})
+          });
+        });
+      }
+    }
+
+    // Screens line
+    if (!screensIncluded) {
+      lines.push({ group:'Ink/Print', label: 'Screens', amount: screensTotal });
+    } else {
+      lines.push({ group:'Ink/Print', label: 'Screens', amount: 0, meta: 'Included' });
+    }
+
+    // Extras section — prefer server totals if present
+    if (data.extras) {
+      Object.entries(data.extras).forEach(([k,v])=>{
+        const n = toNumOrNull(v);
+        if (/_total$/i.test(k) && n && n > 0) {
+          const nice = k.replace(/_total$/,'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
+          lines.push({ group:'Extras', label: nice, amount: n });
+        }
+      });
+      if (rushFee > 0 && !('rush_total' in (data.extras||{}))) {
+        lines.push({ group:'Extras', label:'Rush', amount: rushFee });
+      }
+    } else {
+      // fallback to config rates + toggles
+      const addPerShirtExtra = (key, nice) => {
+        const rate = toNumOrNull(EXTRAS_CFG?.[`${key}_per_shirt`]) ?? 0;
+        if (S.extras?.[key] && rate > 0 && qty > 0) {
+          const amt = +(qty * rate).toFixed(2);
+          lines.push({ group:'Extras', label: `${nice} (${qty} × ${money(rate)})`, amount: amt });
+        }
+      };
+      addPerShirtExtra('fold_bag',  'Fold & Bag');
+      addPerShirtExtra('names',     'Names');
+      addPerShirtExtra('numbers',   'Numbers');
+      addPerShirtExtra('heat_press','Heat Press');
+      addPerShirtExtra('tagging',   'Tagging');
+      if (rushFee > 0) lines.push({ group:'Extras', label:'Rush', amount: rushFee });
+    }
+
+    // Footer rows
+    lines.push({ label: 'Subtotal', amount: subtotal });
+    if (tax  > 0) lines.push({ label: 'Tax', amount: tax });
+
+    return lines;
+  }
+
+  // ---------- Render breakdown (prefers server, falls back to synthesized) ----------
+  function renderBreakdown(data){
+    const renderAmount = (li) => {
+      const n = toNumOrNull(li.amount);
+      if ((li.meta && /included/i.test(li.meta)) && (n === 0 || n === null)) {
+        return '<span class="muted">Included</span>';
+      }
+      return n !== null ? money(n) : esc(li.amount ?? '');
     };
 
-    // Elements
-    const qtyWrap   = document.getElementById('qty-chips');
-    const garmentWrap = document.getElementById('garment-chips');
-    const placeWrap = document.getElementById('place-chips');
-    const colorGrid = document.getElementById('color-grid');
-    const colorsSec = document.getElementById('colors-section');
-    const liveTotal = document.getElementById('live-total');
-    const liveBreak = document.getElementById('live-breakdown');
-    const liveGarment = document.getElementById('live-garment');
+    const buckets = findLineItemBuckets(data);
+    let html = '';
 
-    // Helpers
-    function payload() {
-      return {
-        quantity: S.qty,
-        placements: S.placements.map(p => ({ name: p, colors: S.colors[p] || 0 })),
-        garment_key: S.garmentKey,
-        extras: { rush: S.extras.rush, fold_bag: S.extras.fold_bag }
-      };
-    }
-    function money(n){ return isFinite(n) ? `$${(+n).toFixed(2)}` : '$0.00'; }
-
-    function renderLive() {
-      if (!S.qty || !S.placements.length || !S.garmentKey) {
-        liveBreak.textContent = 'Waiting for inputs…';
-        liveTotal.textContent = '$0.00';
-        return;
-      }
-      fetch(`/api/quote/${TENANT}`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(payload())
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.error) throw new Error(data.error);
-
-        // Topline total = client grand
-        const qty = +data.quantity || 0;
-        const printPer = +data.costs.print_per_shirt || 0;
-        const garmentCostPer = +data.costs.garment_cost_per_shirt || 0;
-        const garmentClientPer = +data.costs.garment_client_per_shirt || 0;
-
-        const printTotal = printPer * qty;
-        const garmentCostTotal = garmentCostPer * qty;
-        const garmentClientTotal = garmentClientPer * qty;
-
-        const fbPer = (data.extras?.fold_bag_per_shirt) ?? 0;
-        const fbTotal = (data.extras?.fold_bag_total) ?? 0;
-        const rushApplied = !!(data.extras?.rush_applied);
-        const clientSub = +data.totals.client_subtotal || 0;
-        const clientGrand = +data.totals.client_grand_total || 0;
-        const costGrand = +data.totals.cost_grand_total || 0;
-
-        liveTotal.textContent = money(clientGrand);
-
-        const garmentLabel = data.params?.garment_label || '';
-        const garmentCost = data.params?.garment_cost;
-        const garmentMarkupPct = data.params?.garment_markup_pct;
-
-        liveGarment.textContent = garmentLabel
-          ? `${garmentLabel} — our cost $${(+garmentCost).toFixed(2)} • markup ${(garmentMarkupPct*100).toFixed(0)}%`
-          : 'Select a garment to begin';
-
-        // Breakdown HTML
-        liveBreak.innerHTML = `
-          <h3>Print</h3>
-          <div class="line"><span>Run charges (${qty} pcs)</span><span>${money(printTotal)}</span></div>
-
-          <h3>Garment</h3>
-          <div class="line"><span>Our cost (${qty}× ${money(garmentCostPer)})</span><span>${money(garmentCostTotal)}</span></div>
-          <div class="line"><span>Client (${qty}× ${money(garmentClientPer)})</span><span>${money(garmentClientTotal)}</span></div>
-
-          <h3>Extras</h3>
-          <div class="line"><span>Fold &amp; Bag ${fbPer ? `(${qty}× ${money(fbPer)})` : ''}</span><span>${fbPer ? money(fbTotal) : '$0.00'}</span></div>
-          <div class="line"><span>Rush</span><span>${rushApplied ? 'Applied' : '—'}</span></div>
-
-          <div class="sep"></div>
-
-          <div class="line"><strong>Client Subtotal</strong><strong>${money(clientSub)}</strong></div>
-          <div class="line"><span class="muted">Our cost (est.)</span><span class="muted">${money(costGrand)}</span></div>
-          <div class="line"><strong>Client Total</strong><strong>${money(clientGrand)}</strong></div>
-        `;
-
-        window.__lastQuote = data;
-        window.__lastPayload = payload();
-      })
-      .catch(err => {
-        liveBreak.textContent = 'Error computing quote';
-        console.error(err);
+    if (buckets.length) {
+      const multi = buckets.length > 1;
+      buckets.forEach(bucket => {
+        if (multi && bucket.group) html += `<h3>${esc(bucket.group)}</h3>`;
+        bucket.lines.forEach(li => {
+          const amtHtml = renderAmount(li);
+          const metaHtml = li.meta && !/included/i.test(li.meta) ? ` <span class="muted">— ${esc(li.meta)}</span>` : '';
+          html += `<div class="line"><span>${esc(li.label)}${metaHtml}</span><span>${amtHtml}</span></div>`;
+        });
+      });
+    } else {
+      const lines = synthesizeBreakdownFromTotals(data);
+      let lastGroup = null;
+      lines.forEach(li => {
+        if (li.group && li.group !== lastGroup) {
+          html += `<h3>${esc(li.group)}</h3>`;
+          lastGroup = li.group;
+        }
+        const amtHtml = renderAmount(li);
+        const metaHtml = li.meta && !/included/i.test(li.meta) ? ` <span class="muted">— ${esc(li.meta)}</span>` : '';
+        html += `<div class="line"><span>${esc(li.label)}${metaHtml}</span><span>${amtHtml}</span></div>`;
       });
     }
 
-    function toggleChip(btn){
-      btn.classList.toggle('active');
+    const grand = data.totals?.client_grand_total ?? data.totals?.grand_total ?? data.totals?.total;
+    if (grand != null){
+      html += `<div class="sep"></div>
+               <div class="line"><strong>Total</strong><strong>${money(grand)}</strong></div>`;
+
+      const qty = toNumOrNull(data.quantity) ?? toNumOrNull(S?.qty);
+      if (qty && qty > 0) {
+        const perShirt = grand / qty;
+        html += `<div class="line"><span class="muted">Price per shirt</span><span>${money(perShirt)}</span></div>`;
+      }
     }
+    liveBreak.innerHTML = html || '—';
+  }
 
-    // Quantity
-    qtyWrap.addEventListener('click', e => {
-      const btn = e.target.closest('button.chip');
-      if (!btn) return;
-      if (btn.id === 'qty-other') {
-        const v = window.prompt('Enter quantity'); // keep simple for v1
-        const n = parseInt(v || '', 10);
-        if (!isFinite(n) || n <= 0) return;
-        S.qty = n;
-        [...qtyWrap.querySelectorAll('.chip')].forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      } else {
-        [...qtyWrap.querySelectorAll('.chip')].forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        S.qty = parseInt(btn.dataset.qty, 10);
+  // ---------- UI bindings / fetch ----------
+  waiveCb && waiveCb.addEventListener('change', e => {
+    S.adminWaiveScreens = e.target.checked;
+    renderLive();
+  });
+
+  // Enforce DTF recommendation (<48) on selection and on Quick Quote
+  function showDTFModal(){
+    try { dtfDialog.showModal(); } catch { /* Safari older: fallback */ alert('DTF recommended for small runs.\nMinimum for screen print is 48.'); }
+  }
+  dtfOk?.addEventListener('click', ()=> dtfDialog.close());
+
+  function renderLive() {
+    if (!isReady()) {
+      liveBreak.textContent = 'Waiting for inputs…';
+      liveTotal.textContent = '$0.00';
+      return;
+    }
+    const body = JSON.stringify(payload());
+    fetch(`/api/quote/${TENANT}`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body
+    })
+    .then(async r => {
+      if (!r.ok){
+        const t = await r.text().catch(()=> '');
+        throw new Error(`HTTP ${r.status} ${r.statusText} — ${t}`);
       }
-      renderLive();
-    });
+      return r.json();
+    })
+    .then(data => {
+      if (data.error) throw new Error(data.error);
 
-    // Garments (single-select)
-    garmentWrap.addEventListener('click', e => {
-      const btn = e.target.closest('button.chip');
-      if (!btn) return;
-      S.garmentKey = btn.dataset.gkey || null;
-      [...garmentWrap.querySelectorAll('.chip')].forEach(b => b.classList.remove('active'));
+      // Topline total
+      liveTotal.textContent = money(
+        data.totals?.client_grand_total ?? data.totals?.grand_total ?? data.totals?.total ?? 0
+      );
+
+      // Garment mini line (show CUSTOMER unit price)
+      const garmentLabel = data.params?.garment_label || '';
+      const garmentCost = toNumOrNull(data.params?.garment_cost);
+      const garmentMarkupPct = toNumOrNull(data.params?.garment_markup_pct);
+      const parts = [];
+      if (garmentLabel) parts.push(garmentLabel);
+      if (garmentCost != null) {
+        const custUnit = +(garmentCost * (1 + (garmentMarkupPct || 0))).toFixed(2);
+        parts.push(`customer ${money(custUnit)}`);
+      }
+      if (garmentMarkupPct != null && isFinite(garmentMarkupPct)) parts.push(`markup ${(garmentMarkupPct*100).toFixed(0)}%`);
+      liveGarment.textContent = parts.length ? parts.join(' — ') : 'Select a garment to begin';
+
+      // Screens meter
+      if (data.screen_charges) {
+        if (data.screen_charges.waived) {
+          screensCounter.textContent = `Screens: ${data.screen_charges.count} → waived`;
+          screensCounter.classList.remove('active');
+        } else {
+          screensCounter.textContent = `Screens: ${data.screen_charges.count} → ${money(data.screen_charges.total)}`;
+          screensCounter.classList.add('active');
+        }
+      } else {
+        screensCounter.textContent = 'Screens: included';
+        screensCounter.classList.remove('active');
+      }
+
+      // Breakdown (prefer server, fallback to synthesized)
+      renderBreakdown(data);
+
+      // expose for quick inspection
+      window.__lastQuote = data;
+      window.__lastPayload = JSON.parse(body);
+    })
+    .catch(err => {
+      liveBreak.textContent = 'Error computing quote';
+      console.error(err);
+    });
+  }
+
+  // Quantity
+  qtyWrap.addEventListener('click', e => {
+    const btn = e.target.closest('button.chip');
+    if (!btn) return;
+    if (btn.id === 'qty-other') {
+      const v = window.prompt('Enter quantity');
+      const n = parseInt(v || '', 10);
+      if (!isFinite(n) || n <= 0) return;
+      if (n < MIN_QTY_SCREENPRINT) { showDTFModal(); return; }
+      S.qty = n;
+      [...qtyWrap.querySelectorAll('.chip')].forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      renderLive();
-    });
+    } else {
+      const n = parseInt(btn.dataset.qty, 10);
+      if (n < MIN_QTY_SCREENPRINT) { showDTFModal(); return; }
+      [...qtyWrap.querySelectorAll('.chip')].forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      S.qty = n;
+    }
+    renderLive();
+  });
 
-    // Placements
-    placeWrap.addEventListener('click', e => {
-      const btn = e.target.closest('button.chip');
-      if (!btn) return;
-      const p = btn.dataset.place;
-      toggleChip(btn);
-      if (btn.classList.contains('active')) {
-        if (!S.placements.includes(p)) S.placements.push(p);
-      } else {
-        S.placements = S.placements.filter(x => x !== p);
-        delete S.colors[p];
-      }
-      renderColorRows();
-      renderLive();
-    });
+  // Garments
+  garmentWrap.addEventListener('click', e => {
+    const btn = e.target.closest('button.chip');
+    if (!btn) return;
+    S.garmentKey = btn.dataset.gkey || null;
+    [...garmentWrap.querySelectorAll('.chip')].forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderLive();
+  });
 
-    function renderColorRows(){
-      colorsSec.style.display = S.placements.length ? 'block' : 'none';
-      colorGrid.innerHTML = '';
-      S.placements.forEach(p => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">${p.replace('_',' ').toUpperCase()}</div>`;
-        const row = document.createElement('div');
-        row.className = 'chips';
-        [1,2,3,4,5,6].forEach(c => {
-          const b = document.createElement('button');
-          b.className = 'chip';
-          b.textContent = `${c} color${c>1?'s':''}`;
-          b.dataset.c = c;
-          if (S.colors[p] === c) b.classList.add('active');
-          b.addEventListener('click', () => {
-            row.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-            b.classList.add('active');
-            S.colors[p] = c;
-            renderLive();
-          });
-          row.appendChild(b);
-        });
-        const more = document.createElement('button');
-        more.className = 'chip';
-        more.textContent = '6+';
-        more.addEventListener('click', () => {
-          const v = window.prompt('Enter color count');
-          const n = parseInt(v || '', 10);
-          if (!isFinite(n) || n < 1) return;
+  // Placements
+  placeWrap.addEventListener('click', e => {
+    const btn = e.target.closest('button.chip');
+    if (!btn) return;
+    const p = btn.dataset.place;
+    btn.classList.toggle('active');
+    if (btn.classList.contains('active')) {
+      if (!S.placements.includes(p)) S.placements.push(p);
+    } else {
+      S.placements = S.placements.filter(x => x !== p);
+      delete S.colors[p];
+    }
+    renderColorRows();
+    renderLive();
+  });
+
+  function renderColorRows(){
+    colorsSec.style.display = S.placements.length ? 'block' : 'none';
+    colorGrid.innerHTML = '';
+    S.placements.forEach(p => {
+      const cap = Math.max(1, maxColorsFor(p));
+      if (S.colors[p] && S.colors[p] > cap) S.colors[p] = cap;
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<div class="card-title">${p.replace('_',' ').toUpperCase()}</div>`;
+
+      const row = document.createElement('div');
+      row.className = 'color-columns ' + (cap >= 6 ? 'two' : 'one');
+
+      for (let c = 1; c <= cap; c++) {
+        const b = document.createElement('button');
+        b.className = 'chip';
+        b.textContent = `${c} color${c>1?'s':''}`;
+        b.dataset.c = c;
+        if (S.colors[p] === c) b.classList.add('active');
+        b.addEventListener('click', () => {
           row.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-          more.classList.add('active');
-          S.colors[p] = n;
+          b.classList.add('active');
+          S.colors[p] = c;
           renderLive();
         });
-        row.appendChild(more);
-        card.appendChild(row);
-        colorGrid.appendChild(card);
-      });
-    }
+        row.appendChild(b);
+      }
 
-    // Extras
-    document.getElementById('extras-chips').addEventListener('click', e => {
-      const btn = e.target.closest('button.chip'); if (!btn) return;
-      const key = btn.dataset.extra;
-      btn.classList.toggle('active');
-      if (key === 'rush') S.extras.rush = btn.classList.contains('active');
-      if (key === 'fold_bag') S.extras.fold_bag = btn.classList.contains('active');
-      renderLive();
+      card.appendChild(row);
+      colorGrid.appendChild(card);
     });
+  }
 
-    // Actions
-    document.getElementById('reset').addEventListener('click', () => {
-      Object.assign(S, { qty:null, garmentKey:null, placements:[], colors:{}, extras:{ rush:false, fold_bag:false }});
-      document.querySelectorAll('.chip.active').forEach(b => b.classList.remove('active'));
-      colorGrid.innerHTML = ''; colorsSec.style.display = 'none';
-      liveTotal.textContent = '$0.00'; liveBreak.textContent = 'Waiting for inputs…';
-      liveGarment.textContent = 'Select a garment to begin';
-    });
+  // Extras
+  document.getElementById('extras-chips').addEventListener('click', e => {
+    const btn = e.target.closest('button.chip'); if (!btn) return;
+    const key = btn.dataset.extra;
+    btn.classList.toggle('active');
+    S.extras[key] = btn.classList.contains('active');
+    renderLive();
+  });
 
-    document.getElementById('review').addEventListener('click', () => {
-      if (!window.__lastQuote) return alert('Please complete the steps first.');
-      alert(`Client Total: ${liveTotal.textContent}\n(You can style a proper review modal later)`);
-    });
+  // Actions
+  document.getElementById('reset').addEventListener('click', () => {
+    Object.assign(S, { qty:null, garmentKey:null, placements:[], colors:{}, extras:{ rush:false, fold_bag:false, names:false, numbers:false, heat_press:false, tagging:false }, adminWaiveScreens:false });
+    document.querySelectorAll('.chip.active').forEach(b => b.classList.remove('active'));
+    colorGrid.innerHTML = ''; colorsSec.style.display = 'none';
+    liveTotal.textContent = '$0.00'; liveBreak.textContent = 'Waiting for inputs…';
+    liveGarment.textContent = 'Select a garment to begin';
+    if (waiveCb) waiveCb.checked = false;
+    screensCounter.textContent = SC_CFG.enabled ? 'Screens: 0' : 'Screens: included';
+    screensCounter.classList.remove('active');
+  });
 
-    // (Email flows will be handled later; keeping button for UI parity)
-    document.getElementById('email').addEventListener('click', async () => {
-      alert('Emailing is coming later. For now, copy the totals or download via your main app.');
-    });
+  document.getElementById('quick-quote').addEventListener('click', () => {
+    if (S.qty && S.qty < MIN_QTY_SCREENPRINT) { showDTFModal(); return; }
+    if (!window.__lastQuote) return alert('Please complete the steps first.');
+    alert(`Client Total: ${document.getElementById('live-total').textContent}`);
+  });
+
+  document.getElementById('email').addEventListener('click', async () => {
+    alert('Emailing coming later.');
+  });
   </script>
 </body>
 </html>

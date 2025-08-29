@@ -100,7 +100,7 @@ def log_turn(session_id: str, role: str, message: str, meta: Optional[Dict[str, 
     if logger_txt:
         sid_short = (session_id or "")[:8]
         tenant = (meta or {}).get("tenant") or "-"
-        logger_txt.info(f"{tenant} {sid_short} {role.upper()}: {safe_msg}")
+        logger_txt.info(f"{tenant} {sid_short} {role.UPPER() if hasattr(role,'UPPER') else role.upper()}: {safe_msg}")
 # =========================
 # >>> LOGGING PATCH END
 # =========================
@@ -521,6 +521,59 @@ getcontext().prec = 9
 _CENTS = Decimal("0.01")
 def _money(x: Decimal) -> Decimal:
     return x.quantize(_CENTS, rounding=ROUND_HALF_UP)
+
+# --------- NEW HELPERS: caps from config & pricing ----------
+def _per_loc_color_cap(cfg: dict, loc: str) -> Optional[int]:
+    """Per-placement cap from console.max_colors_per_placement, else printing.max_colors, else console.max_colors."""
+    c = (cfg or {}).get("console", {}) or {}
+    per = c.get("max_colors_per_placement") or {}
+    if isinstance(per, dict) and loc in per and per[loc] is not None:
+        try:
+            return int(per[loc])
+        except Exception:
+            pass
+    pr = (cfg or {}).get("printing", {}) or {}
+    if pr.get("max_colors") is not None:
+        try:
+            return int(pr.get("max_colors"))
+        except Exception:
+            pass
+    if c.get("max_colors") is not None:
+        try:
+            return int(c.get("max_colors"))
+        except Exception:
+            pass
+    return None  # fall back later if needed
+
+def _max_colors_from_pricing(pricing: dict) -> int:
+    tiers = (pricing or {}).get("screen_print", {}).get("tiers", {}) or {}
+    maxc = 0
+    for k in tiers.keys():
+        m = re.match(r"(\d+)_color$", str(k))
+        if m:
+            try:
+                maxc = max(maxc, int(m.group(1)))
+            except Exception:
+                pass
+    return maxc or 12
+
+def _apply_color_caps(cfg: dict, pricing: dict, qty: int, locs: List[Dict[str,int]]) -> Tuple[List[Dict[str,int]], bool]:
+    """Clamp colors per placement to (per-placement cap) and (pricing max tier). Returns (new_locs, any_clamped)."""
+    pricing_cap = _max_colors_from_pricing(pricing)
+    any_clamped = False
+    out: List[Dict[str,int]] = []
+    for spec in locs:
+        loc = spec.get("location", "")
+        colors = int(spec.get("colors") or 0)
+        if colors <= 0:
+            continue
+        per_cap = _per_loc_color_cap(cfg, loc) or _shop_max_colors(cfg)
+        new_colors = max(1, min(colors, per_cap, pricing_cap))
+        if new_colors != colors:
+            any_clamped = True
+        out.append({"location": loc, "colors": new_colors})
+    return out, any_clamped
+# ------------------------------------------------------------
 
 def _compute_quote_total(pricing: dict, cfg: dict, quantity: int, locations: List[Dict[str,int]], chosen_tier: Optional[str]) -> Optional[Dict[str,Any]]:
     sp = pricing.get("screen_print", {})
@@ -1068,26 +1121,57 @@ def ask(tenant: str):
     return resp
 
 # ================================
-# >>> QuickQuote Console API v2 <<<  (UPDATED)
+# >>> QuickQuote Console API v2 (UPDATED)
 # ================================
 def _console_rules(cfg: dict) -> dict:
+    """
+    Pulls console pricing knobs from config.json
+    """
     c = (cfg or {}).get("console", {}) or {}
+
     garments = c.get("garments") or []
     gmap = { (g.get("key") or "").strip(): g for g in garments if g.get("key") }
-    rush_mult = float((c.get("extras") or {}).get("rush_multiplier", 1.5))
-    fold_bag = float((c.get("extras") or {}).get("fold_bag_per_shirt", 1.25))
-    garment_pct = float((c.get("markup") or {}).get("garment_pct", 0.40))
+
+    ex = (c.get("extras") or {})  # per-shirt extras and rush rate (as +%)
+    # rush in config is a rate: 0.50 => +50%
+    rush_rate = float(ex.get("rush_multiplier", 0.50))  # treated as +% (added after subtotal)
+    extras_per_shirt = {
+        "fold_bag":   float(ex.get("fold_bag_per_shirt", 0.0)),
+        "names":      float(ex.get("names_per_shirt", 0.0)),
+        "numbers":    float(ex.get("numbers_per_shirt", 0.0)),
+        "heat_press": float(ex.get("heat_press_per_shirt", 0.0)),
+        "tagging":    float(ex.get("tagging_per_shirt", 0.0)),
+    }
+
+    # garment markup (retail over cost)
+    garment_pct = float(
+        c.get("garment_markup_pct",
+              (c.get("markup") or {}).get("garment_pct", 0.40))
+    )
+
+    # screen charges block (one-time)
+    sc = (c.get("screen_charges") or {})
+    screen_cfg = {
+        "enabled": bool(sc.get("enabled", False)),
+        "price_per_screen": float(sc.get("price_per_screen", 0.0)),
+        "count_white_underbase": bool(sc.get("count_white_underbase", False)),
+        "waive_at_qty": (int(sc["waive_at_qty"]) if sc.get("waive_at_qty") not in (None, "",) else None),
+        "max_screens": (int(sc["max_screens"]) if sc.get("max_screens") not in (None, "",) else None),
+    }
+
     return {
         "garments_map": gmap,
-        "rush_multiplier": rush_mult,
-        "fold_bag_per_shirt": fold_bag,
         "garment_markup_pct": garment_pct,
+        "rush_rate": rush_rate,                 # e.g., 0.50 means +50%
+        "extras_per_shirt": extras_per_shirt,   # dict of per-shirt adders
+        "screen": screen_cfg,                   # screen charge rules
     }
 
 def _normalize_console_payload_v2(payload: Dict[str, Any]) -> Tuple[int, List[Dict[str,int]], Optional[str], Optional[str]]:
     """
     Body:
-      {"quantity":72,"placements":[{"name":"front","colors":2}], "garment_key":"g5000", "extras":{"rush":true,"fold_bag":true}}
+      {"quantity":72,"placements":[{"name":"front","colors":2}], "garment_key":"g5000",
+       "extras":{"rush":true,"fold_bag":true,"names":true,...}, "adminWaiveScreens":false}
     Returns: (qty, locations, tier(None), garment_key)
     """
     qty = int(payload.get("quantity") or 0)
@@ -1095,10 +1179,10 @@ def _normalize_console_payload_v2(payload: Dict[str, Any]) -> Tuple[int, List[Di
     locations: List[Dict[str, int]] = []
     for it in raw_places:
         name = (it.get("name") or it.get("location") or "").strip().lower()
-        if not name: 
+        if not name:
             continue
         colors = int(it.get("colors") or 0)
-        if colors <= 0: 
+        if colors <= 0:
             continue
         locations.append({"location": name, "colors": colors})
     garment_key = (payload.get("garment_key") or "").strip() or None
@@ -1107,8 +1191,9 @@ def _normalize_console_payload_v2(payload: Dict[str, Any]) -> Tuple[int, List[Di
 @app.post("/api/quote/<tenant>")
 def api_quote(tenant: str):
     """
-    Compute a Console quote with garments, markup, fold&bag, rush.
-    Response includes internal 'cost' vs client (retail) breakdown.
+    Compute a Console quote with garments, markup, extras (per-shirt),
+    and optional one-time screen charges. Returns a response that
+    keeps backward compatibility with the existing console UI.
     """
     try:
         body = request.get_json(force=True, silent=True) or {}
@@ -1120,20 +1205,26 @@ def api_quote(tenant: str):
         pricing = _load_json(tenant, "pricing")
         rules = _console_rules(cfg)
 
-        # Garment
-        if not gkey or gkey not in rules["garments_map"]:
+        # ---- APPLY COLOR CAPS BEFORE LOOKUPS (per-placement + pricing tiers) ----
+        locs_capped, any_clamped = _apply_color_caps(cfg, pricing, qty, locs)
+        if not locs_capped:
+            return jsonify({"error": "No valid placements after applying color caps."}), 400
+
+        # --- Garment (cost -> retail via markup) ---
+        gmap = rules["garments_map"]
+        if not gkey or gkey not in gmap:
             return jsonify({"error":"Select a garment."}), 400
-        g = rules["garments_map"][gkey]
-        garment_cost = float(g.get("cost", 0.0))
+        gmeta = gmap[gkey]
+        garment_cost = float(gmeta.get("cost", 0.0))
         if garment_cost <= 0:
             return jsonify({"error":"Invalid garment cost."}), 400
         garment_markup_pct = rules["garment_markup_pct"]
         garment_client = garment_cost * (1.0 + garment_markup_pct)
 
-        # Print (retail run charges from tier table)
+        # --- Print run charges (per placement, per shirt) ---
         per_shirt_print = 0.0
         per_loc = []
-        for spec in locs:
+        for spec in locs_capped:
             colors = int(spec["colors"])
             run = _run_charge_per_shirt(pricing, qty, colors)
             if run is None:
@@ -1142,40 +1233,98 @@ def api_quote(tenant: str):
             per_loc.append({
                 "location": spec["location"],
                 "colors": colors,
-                "per_shirt_run": float(run)
+                "per_shirt_run": round(float(run), 2)
             })
 
-        # Base subtotals
-        cost_per_shirt = garment_cost + per_shirt_print  # internal view (print treated as retail; no print 'cost' in v2)
+        # --- Base per-shirt math ---
+        cost_per_shirt = garment_cost + per_shirt_print   # internal
         client_per_shirt = garment_client + per_shirt_print
 
         cost_subtotal = cost_per_shirt * qty
-        client_subtotal = client_per_shirt * qty
+        client_subtotal_base = client_per_shirt * qty
 
-        # Extras
-        extras = body.get("extras") or {}
-        fold_bag_on = bool(extras.get("fold_bag"))
-        rush_on = bool(extras.get("rush"))
+        # --- Per-shirt extras (retail line items) ---
+        extras_flags = body.get("extras") or {}
+        ex_prices = rules["extras_per_shirt"]
+        per_shirt_selected_sum = 0.0
+        extras_out = {}
 
-        fold_bag_per = rules["fold_bag_per_shirt"] if fold_bag_on else 0.0
-        fold_bag_total = fold_bag_per * qty
+        def add_per_shirt_extra(key: str):
+            nonlocal per_shirt_selected_sum
+            enabled = bool(extras_flags.get(key))
+            per = ex_prices.get(key, 0.0) if enabled else 0.0
+            total = per * qty
+            extras_out[f"{key}_per_shirt"] = round(per, 2)
+            extras_out[f"{key}_total"] = round(total, 2)
+            per_shirt_selected_sum += per
 
-        # Rush applies AFTER subtotal (on client price)
-        rush_multiplier = rules["rush_multiplier"] if rush_on else 1.0
+        for key in ("fold_bag", "names", "numbers", "heat_press", "tagging"):
+            add_per_shirt_extra(key)
 
-        client_grand = (client_subtotal + fold_bag_total) * rush_multiplier
-        cost_grand = cost_subtotal  # fold/bag retail-only in v2
+        per_shirt_extras_total = per_shirt_selected_sum * qty
 
+        # --- Screen charges (one-time, not per shirt) ---
+        scfg = rules["screen"]
+        admin_waive = bool(body.get("adminWaiveScreens"))
+        screen_block = None
+        screen_total = 0.0
+
+        if scfg["enabled"]:
+            # Count screens = sum(colors per selected placement)
+            # +1 per placement if white underbase counts and that placement has ≥1 color
+            count = 0
+            for spec in locs_capped:
+                c = max(0, int(spec["colors"]))
+                if c > 0:
+                    count += c
+                    if scfg["count_white_underbase"]:
+                        count += 1
+            if scfg["max_screens"] is not None:
+                count = min(count, scfg["max_screens"])
+
+            waived_by = None
+            if admin_waive:
+                waived_by = "admin"
+            elif scfg["waive_at_qty"] and qty >= int(scfg["waive_at_qty"]):
+                waived_by = "qty"
+
+            price_per_screen = scfg["price_per_screen"]
+            screen_total = 0.0 if waived_by else (count * price_per_screen)
+
+            screen_block = {
+                "enabled": True,
+                "count": int(count),
+                "price_per_screen": round(price_per_screen, 2),
+                "total": round(screen_total, 2),
+                "waived": bool(waived_by),
+                "waived_by": waived_by,
+                "waive_at_qty": scfg["waive_at_qty"]
+            }
+
+        # --- Subtotals (client) ---
+        client_subtotal = client_subtotal_base + per_shirt_extras_total + screen_total
+
+        # --- Rush (as +% applied AFTER subtotal) ---
+        rush_on = bool(extras_flags.get("rush"))
+        rush_rate = rules["rush_rate"] if rush_on else 0.0     # 0.50 => +50%
+        rush_multiplier = 1.0 + rush_rate
+        rush_amount = client_subtotal * rush_rate
+
+        client_grand = client_subtotal * rush_multiplier
+        cost_grand = cost_subtotal  # extras & screens are retail-only in this v2
+
+        # --- Shape response (keep your old fields; add new ones) ---
         out = {
             "quantity": qty,
             "locations": per_loc,
             "params": {
                 "garment_key": gkey,
-                "garment_label": g.get("label"),
+                "garment_label": gmeta.get("label"),
                 "garment_cost": round(garment_cost, 2),
                 "garment_markup_pct": garment_markup_pct,
+                "rush_rate": rush_rate,
                 "rush_multiplier": rush_multiplier,
-                "fold_bag_per_shirt": round(fold_bag_per, 2)
+                "colors_clamped": bool(any_clamped)
             },
             "costs": {
                 "print_per_shirt": round(per_shirt_print, 2),
@@ -1184,17 +1333,21 @@ def api_quote(tenant: str):
                 "cost_subtotal": round(cost_subtotal, 2)
             },
             "extras": {
-                "fold_bag_per_shirt": round(fold_bag_per, 2),
-                "fold_bag_total": round(fold_bag_total, 2),
-                "rush_applied": rush_on
+                **extras_out,
+                "rush_applied": rush_on,
+                "rush_amount": round(rush_amount, 2)
             },
             "totals": {
-                "client_subtotal": round(client_subtotal + fold_bag_total, 2),
+                "client_subtotal": round(client_subtotal, 2),
                 "client_grand_total": round(client_grand, 2),
                 "cost_grand_total": round(cost_grand, 2)
             }
         }
+        if screen_block:
+            out["screen_charges"] = screen_block
+
         return jsonify(out)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 # ================================
@@ -1288,7 +1441,7 @@ def on_unhandled_error(e):
         }))
     except Exception:
         pass
-    return make_response("Sorry—something went wrong. Please try the step‑by‑step quote.", 500)
+    return make_response("Sorry—something went wrong. Please try the step-by-step quote.", 500)
 
 if __name__ == "__main__":
     debug = os.getenv("FLASK_DEBUG", "1") == "1"

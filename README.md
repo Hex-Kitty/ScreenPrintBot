@@ -6,7 +6,9 @@ It is currently in **beta** and being tested with Sportswear Express.
 ---
 
 ## 🆕 What’s New
-- **QuickQuote Console MVP** is now live at [app.screenprintbot.com](https://app.screenprintbot.com), featuring inline chat history and improved quoting flow.  
+- **QuickQuote Console Beta 0.3** adds per-placement Ink/Print cost breakdown, garment markup display, and itemized Extras.
+- **Dynamic minimums**: Each shop’s config controls screen-print minimums (e.g., 12 vs 48). Quantities below min automatically advise DTF instead of quoting.
+- **UI updates**: Gray placement cards, friendlier “Quick Quote” button, and subtle Beta badge for version tracking.
 - See [CHANGELOG.md](./CHANGELOG.md) for full release notes.
 
 ---
