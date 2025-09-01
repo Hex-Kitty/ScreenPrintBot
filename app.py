@@ -17,10 +17,6 @@ def api_ping():
 
 @app.route("/api/email-estimate", methods=["POST"])
 def email_estimate():
-    return {"ok": True, "note": "email route is live"}
-
-@app.route("/api/email-estimate", methods=["POST"])
-def email_estimate():
     data = request.get_json(silent=True) or {}
     customer_email = data.get("customer_email")
     subject = data.get("subject", "Your Estimate from QuickQuote Console")
