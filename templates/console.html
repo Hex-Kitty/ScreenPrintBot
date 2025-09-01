@@ -55,7 +55,7 @@
     .card{ border:1px solid #eee; border-radius:12px; padding:12px; background:#fff; }
     .card > .card-title { font-weight:700; margin-bottom:8px; }
 
-    .actions{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+    .actions{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; align-items:center; }
     .btn{ padding:10px 16px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; transition: background .15s ease; }
     .btn:hover{ background:#f5f5f5; }
     .btn.primary{ background:var(--btn); color:#fff; border-color:var(--btn); }
@@ -199,8 +199,16 @@
       <div class="actions">
         <button class="btn" id="reset">Reset</button>
         <button class="btn primary" id="quick-quote">Quick Quote</button>
-        <button class="btn" id="email">Email Estimate</button>
+
+        <!-- (2) Email controls (NEW) -->
+        <div class="email-controls" style="display:flex; gap:8px; align-items:center;">
+          <input id="custEmail" type="email" placeholder="customer@email.com"
+                 value="quote@screenprintbot.com" style="padding:8px;min-width:260px;">
+          <button class="btn" id="email">Email Estimate</button>
+        </div>
       </div>
+      <div id="emailStatus" class="mini" style="margin-top:6px;"></div>
+      <!-- /actions -->
     </main>
   </div>
 
@@ -251,6 +259,11 @@
   const screensTip = document.getElementById('screens-tip');
   const dtfDialog = document.getElementById('dtfModal');
   const dtfOk = document.getElementById('dtfOk');
+
+  // (2) new email elements
+  const emailInput = document.getElementById('custEmail');
+  const emailBtn   = document.getElementById('email');
+  const emailStatus= document.getElementById('emailStatus');
 
   // ---------- Helpers ----------
   function esc(s){
@@ -627,7 +640,7 @@
       renderBreakdown(data);
 
       // expose for quick inspection
-      window.__lastQuote = data;
+      window.__lastQuote = data;            // <— used by email handler
       window.__lastPayload = JSON.parse(body);
     })
     .catch(err => {
@@ -745,8 +758,71 @@
     alert(`Client Total: ${document.getElementById('live-total').textContent}`);
   });
 
-  document.getElementById('email').addEventListener('click', async () => {
-    alert('Emailing coming later.');
+  // (3) email body helpers (NEW)
+  function renderEstimateHTML(q) {
+    const fmt = n => (typeof n === "number" ? n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) : n);
+    const total = q?.totals?.client_grand_total ?? q?.totals?.grand_total ?? q?.totals?.total ?? null;
+    const qty   = q?.quantity ?? S.qty;
+    const garment = q?.params?.garment_label ?? null;
+
+    const rows = [];
+    rows.push(`<h1 style="margin:0 0 8px;font-family:system-ui,Segoe UI,Arial;">Estimate</h1>`);
+    rows.push(`<p style="margin:0 0 16px;font-size:14px;color:#444">Thanks for the opportunity! Here’s your estimate.</p>`);
+    rows.push(`<table style="border-collapse:collapse;width:100%;max-width:560px;font:14px/1.4 system-ui,Segoe UI,Arial">`);
+    if (total != null) rows.push(`<tr><td style="padding:8px 0;font-weight:600">Total</td><td style="padding:8px 0;text-align:right">$${fmt(+total)}</td></tr>`);
+    if (qty) rows.push(`<tr><td style="padding:6px 0">Quantity</td><td style="padding:6px 0;text-align:right">${qty}</td></tr>`);
+    if (garment) rows.push(`<tr><td style="padding:6px 0">Garment</td><td style="padding:6px 0;text-align:right">${garment}</td></tr>`);
+    const placements = Array.isArray(q?.locations) ? q.locations
+      .map(loc => `${(loc.location||'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase())} — ${loc.colors||0} color${(loc.colors||0)>1?'s':''}`) : [];
+    if (placements.length) rows.push(`<tr><td style="padding:6px 0">Placements</td><td style="padding:6px 0;text-align:right">${placements.join(', ')}</td></tr>`);
+    rows.push(`</table>`);
+    rows.push(`<p style="margin-top:16px;font-size:12px;color:#777">Reply to this email with any changes and we’ll update the quote.</p>`);
+    return rows.join("");
+  }
+  function renderTextFallback(html) {
+    return html.replace(/<style[\s\S]*?<\/style>/gi,"")
+               .replace(/<[^>]+>/g," ")
+               .replace(/\s{2,}/g," ")
+               .trim();
+  }
+
+  async function sendEstimate({to, subject, html}) {
+    const res = await fetch("/api/email-estimate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customer_email: to,
+        subject,
+        html_body: html,
+        text_body: renderTextFallback(html),
+      }),
+    });
+    const data = await res.json().catch(()=> ({}));
+    if (!res.ok) throw new Error(data.Message || data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  // (4) wire the Email Estimate button (NEW)
+  emailBtn.addEventListener('click', async () => {
+    if (S.qty && S.qty < MIN_QTY_SCREENPRINT) { showDTFModal(); return; }
+    if (!window.__lastQuote) { alert('Please complete the steps first.'); return; }
+
+    const to = (emailInput.value || '').trim();
+    if (!to) { emailStatus.textContent = 'Enter a valid email.'; return; }
+
+    const html = renderEstimateHTML(window.__lastQuote);
+    const subject = `Your Estimate from {{ cfg.brand_name }}`;
+
+    emailBtn.disabled = true; const old = emailBtn.textContent; emailBtn.textContent = 'Sending…';
+    emailStatus.textContent = '';
+    try {
+      const result = await sendEstimate({ to, subject, html });
+      emailStatus.textContent = `Sent! MessageID ${result.MessageID || '—'}`;
+    } catch (e) {
+      emailStatus.textContent = `Send failed: ${e.message}`;
+    } finally {
+      emailBtn.disabled = false; emailBtn.textContent = old;
+    }
   });
   </script>
 </body>
