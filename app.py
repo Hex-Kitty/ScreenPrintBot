@@ -1,4 +1,4 @@
-import os, json, re, time, random, io
+import os, json, re, time, random, io, requests
 from typing import Optional, Tuple, Dict, Any, List
 from flask import Flask, request, jsonify, render_template, abort, redirect, url_for, make_response
 
@@ -6,6 +6,47 @@ APP_ROOT = os.path.dirname(__file__)
 CLIENTS_DIR = os.path.join(APP_ROOT, "clients")
 
 app = Flask(__name__)
+
+@app.route("/api/email-estimate", methods=["POST"])
+def email_estimate():
+    data = request.get_json(silent=True) or {}
+    customer_email = data.get("customer_email")
+    subject = data.get("subject", "Your Estimate from QuickQuote Console")
+    html_body = data.get("html_body", "<p>This is a test estimate.</p>")
+    text_body = data.get("text_body", "This is a test estimate.")
+
+    if not customer_email:
+        return jsonify({"ok": False, "error": "Missing customer_email"}), 400
+
+    payload = {
+        "From": os.environ["FROM_EMAIL"],
+        "To": customer_email,
+        "Bcc": os.environ.get("SHOP_BCC", ""),
+        "Subject": subject,
+        "HtmlBody": html_body,
+        "TextBody": text_body,
+    }
+
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Postmark-Server-Token": os.environ["POSTMARK_TOKEN"],
+    }
+
+    # Call Postmark and be defensive about response format
+    r = requests.post("https://api.postmarkapp.com/email", json=payload, headers=headers)
+
+    try:
+        body = r.json()
+    except Exception:
+        body = {"raw": r.text}
+
+    # Log to Render logs for visibility
+    print("POSTMARK status:", r.status_code)
+    print("POSTMARK body:", body)
+
+    return jsonify(body), r.status_code
+
 
 # Trust Render/Proxy headers for correct client IP/proto
 from werkzeug.middleware.proxy_fix import ProxyFix
