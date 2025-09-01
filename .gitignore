@@ -11,3 +11,6 @@ logs/
 
 # Environment
 .env
+# macOS
+.DS_Store
+static/.DS_Store

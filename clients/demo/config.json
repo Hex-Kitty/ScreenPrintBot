@@ -1,20 +1,19 @@
 {
   "brand_name": "Screen Print Bot Demo",
   "logo_path": "/static/logos/demo.png",
-
   "colors": {
-    "primary": "#0D9488",
-    "secondary": "#111827",
-    "accent": "#F97316",
+    "primary": "#4C3973",
+    "secondary": "#0D0D0D",
+    "accent": "#1B98A6",
     "bg": "#FFFFFF",
-    "text": "#111827"
+    "text": "#0D0D0D",
+    "muted": "#A9C6D9",
+    "soft": "#DCEAF2"
   },
-
   "fonts": {
     "heading": "Montserrat, sans-serif",
     "body": "Inter, system-ui, sans-serif"
   },
-
   "ui": {
     "intro_lines": [
       "Ask me about pricing or general questions.",
@@ -22,7 +21,7 @@
       "Or just tap the quick buttons below."
     ],
     "show_brand_text": false,
-    "logo_scale": 1.15,
+    "logo_scale": 1.5,
     "response_placeholder": "Your quote will appear here 👇",
     "cta_label": "Submit",
     "show_price_breakdown": true,
@@ -51,24 +50,129 @@
       "emoji": "🧾"
     }
   },
-
   "buttons": {
-    "bg": "#D4A373",
-    "hover": "#B88352",
-    "text": "#111827"
+    "bg": "#1B98A6",
+    "hover": "#157D86",
+    "text": "#FFFFFF"
   },
-
   "garments": {
     "tiers_enabled": true,
     "tiers": {
-      "good":   { "label": "Gildan 5000",       "blank_price": 3.00 },
-      "better": { "label": "Hanes Nano",        "blank_price": 4.00 },
-      "best":   { "label": "Bella+Canvas 3001", "blank_price": 5.00 }
+      "good": {
+        "label": "Gildan 5000",
+        "blank_price": 3.00
+      },
+      "better": {
+        "label": "Hanes Nano",
+        "blank_price": 4.00
+      },
+      "best": {
+        "label": "Bella+Canvas 3001",
+        "blank_price": 5.00
+      }
     }
   },
-
   "printing": {
     "max_colors": 12,
-    "placements": ["front", "back", "left_sleeve", "right_sleeve"]
+    "placements": [
+      "front",
+      "back",
+      "left_sleeve",
+      "right_sleeve"
+    ]
+  },
+  "email": {
+    "from": "quote@screenprintbot.com",
+    "reply_to": "quote@screenprintbot.com",
+    "bcc": "mike@hexkitty.com",
+    "override_to": null,
+    "postmark": {
+      "server_token": "ENV:POSTMARK_DEMO",
+      "message_stream": "outbound-demo",
+      "template_alias": "quote_v1"
+    }
+  },
+  "console": {
+    "title": "QuickQuote Console — part of the ScreenPrintBot family",
+    "qty_presets": [
+      12,
+      24,
+      36,
+      48,
+      72,
+      100,
+      150,
+      250,
+      500
+    ],
+    "placements": [
+      "front",
+      "back",
+      "left_sleeve",
+      "right_sleeve"
+    ],
+    "garments": [
+      {
+        "key": "g2000",
+        "label": "Gildan 2000",
+        "cost": 2.89
+      },
+      {
+        "key": "g5000",
+        "label": "Gildan 5000",
+        "cost": 2.69
+      },
+      {
+        "key": "nl3600",
+        "label": "Next Level 3600",
+        "cost": 3.89
+      },
+      {
+        "key": "bc3001",
+        "label": "Bella+Canvas 3001",
+        "cost": 4.09
+      },
+      {
+        "key": "g185",
+        "label": "Gildan Hoodie Pullover",
+        "cost": 10.89
+      },
+      {
+        "key": "g186",
+        "label": "Gildan Hoodie Zip",
+        "cost": 13.39
+      }
+    ],
+    "garment_markup_pct": 0.40,
+    "extras": {
+      "rush_multiplier": 0.50,
+      "fold_bag_per_shirt": 1.25,
+      "names_per_shirt": 7.00,
+      "numbers_per_shirt": 7.00,
+      "heat_press_per_shirt": 2.00,
+      "tagging_per_shirt": 0.50
+    },
+    "screen_charges": {
+      "enabled": false,
+      "price_per_screen": 15.00,
+      "count_white_underbase": true,
+      "waive_at_qty": null,
+      "max_screens": null
+    },
+    "show_admin_controls": true,
+    "max_colors_per_placement": {
+      "front": 10,
+      "back": 10,
+      "left_sleeve": 10,
+      "right_sleeve": 10
+    },
+    "theme": {
+      "chip_active_bg": "#1B98A6",
+      "chip_active_text": "#FFFFFF",
+      "chip_border": "#A9C6D9",
+      "card_border": "#A9C6D9",
+      "badge_bg": "#4C3973",
+      "badge_text": "#DCEAF2"
+    }
   }
 }

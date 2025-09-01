@@ -33,6 +33,7 @@ def email_estimate():
         "Subject": subject,
         "HtmlBody": html_body,
         "TextBody": text_body,
+        "MessageStream": os.environ.get("POSTMARK_STREAM", "outbound")
     }
 
     headers = {

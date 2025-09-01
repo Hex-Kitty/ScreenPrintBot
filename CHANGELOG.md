@@ -3,6 +3,37 @@
 All notable changes to this project will be documented in this file.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [1.0.0] - 2025-09-01
+### Added
+- **Branding & UI**
+  - New ScreenPrintBot brand (logo + palette).
+  - Neutral theme for multi-tenant consoles (works with any shop brand).
+  - “Demo / v1.0” badges and layout polish.
+  - Mobile safety rail: content locked to right column on small screens.
+
+- **Email**
+  - Postmark integration (server token via `POSTMARK_TOKEN`).
+  - Dedicated **Message Stream** (`outbound-estimates`) via `POSTMARK_STREAM`.
+  - Template-driven estimate emails using alias **`quote_v1`**.
+  - BCC support (`SHOP_BCC`).
+
+- **Config & Theming**
+  - JSON config supports `colors`, `ui`, `buttons`, `logo_scale`, etc.
+  - Favicon pipeline (16/32/ico) served from `/static`.
+
+- **Landing Page**
+  - New SaaS-style hero + card layout.
+  - Buttons aligned to brand palette, size/contrast tuned.
+
+### Changed
+- Render environment variables now documented in README.
+- Safer email env usage + structured logging of Postmark responses.
+
+### Known Limitations
+- Persistent per-shop logging and export still pending.
+
+---
+
 ## [0.3.0-beta] - 2025-08-29
 ### Added
 - **Sidebar Breakdown Upgrade**: Garment, Ink/Print, and Extras now itemized with customer-facing pricing and per-placement details.
@@ -18,6 +49,8 @@ This project follows [Semantic Versioning](https://semver.org/).
 ### Known Limitations
 - Email sending not yet implemented (Postmark integration planned).
 
+---
+
 ## [0.2.0-beta] - 2025-08-25
 ### Added
 - **QuickQuote Console MVP**: First live deploy to Render at `app.screenprintbot.com`.
@@ -32,16 +65,18 @@ This project follows [Semantic Versioning](https://semver.org/).
 - Email sending not yet implemented (Postmark planned).
 - Logging is minimal/ephemeral (no dashboard yet).
 
+---
+
 ## [0.1.0-beta] - 2025-08-21
 ### Added
 - Initial Render deployment prep (Starter plan to avoid cold starts).
 - `clients/` directory with **demo** and **swx** configs (branding, FAQ, pricing).
-- Multi‑location quoting flow (front/back/left sleeve/right sleeve) and color counts.
+- Multi-location quoting flow (front/back/left sleeve/right sleeve) and color counts.
 - Branded PDF generation (ReportLab).
 - Project housekeeping: `.gitignore`, repo rename to **ScreenPrintBot**.
 
 ### Changed
-- Repository moved from `Bot` to `ScreenPrintBot` under Hex‑Kitty org.
+- Repository moved from `Bot` to `ScreenPrintBot` under Hex-Kitty org.
 - Requirements pinned; Gunicorn confirmed as entry point (`gunicorn app:app`).
 
 ### Known Limitations (to be addressed soon)
@@ -51,6 +86,5 @@ This project follows [Semantic Versioning](https://semver.org/).
 ---
 
 ## [Unreleased]
-- Email sending via Postmark (`POSTMARK_TOKEN`, `SHOP_EMAIL`).
-- Persistent per‑shop logging and simple export.
+- Persistent per-shop logging and simple export.
 - README/Docs expansion and screenshots.
