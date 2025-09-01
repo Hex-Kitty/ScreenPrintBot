@@ -7,22 +7,17 @@ CLIENTS_DIR = os.path.join(APP_ROOT, "clients")
 
 app = Flask(__name__)
 
-with app.app_context():
-    print("=== ROUTES LOADED ===")
-    for rule in app.url_map.iter_rules():
-        print(rule)
-    print("======================")
-
-import time
-BOOT_TS = time.strftime("%Y-%m-%d %H:%M:%S")
-
 @app.get("/__version")
 def __version():
-    return {"ok": True, "boot": BOOT_TS}
+    return {"ok": True}
 
 @app.get("/api/ping")
 def api_ping():
-    return {"ok": True, "pong": True}
+    return {"pong": True}
+
+@app.route("/api/email-estimate", methods=["POST"])
+def email_estimate():
+    return {"ok": True, "note": "email route is live"}
 
 @app.route("/api/email-estimate", methods=["POST"])
 def email_estimate():
