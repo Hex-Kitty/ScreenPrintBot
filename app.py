@@ -7,6 +7,17 @@ CLIENTS_DIR = os.path.join(APP_ROOT, "clients")
 
 app = Flask(__name__)
 
+import time
+BOOT_TS = time.strftime("%Y-%m-%d %H:%M:%S")
+
+@app.get("/__version")
+def __version():
+    return {"ok": True, "boot": BOOT_TS}
+
+@app.get("/api/ping")
+def api_ping():
+    return {"ok": True, "pong": True}
+
 @app.route("/api/email-estimate", methods=["POST"])
 def email_estimate():
     data = request.get_json(silent=True) or {}
