@@ -13,9 +13,9 @@
     }
     * { box-sizing: border-box; }
     body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#111; }
-    .qqc{ display:grid; grid-template-columns: 340px 1fr; min-height:100vh; }
-    aside{ padding:16px; border-right:1px solid #eee; background:#fafafa; }
-    main{ padding:20px; }
+    .qqc{ display:grid; grid-template-columns: 340px 1fr; min-height:100vh; position:relative; }
+    aside{ padding:16px; border-right:1px solid #eee; background:#fafafa; position:sticky; top:0; z-index:10; }
+    main{ padding:20px; position:relative; z-index:100; }
 
     h1{ margin:0 0 4px; font-size:26px; line-height:1.1; display:flex; align-items:center; gap:8px; }
     .tag{ font-size:12px; color:#666; margin-bottom:10px; }
@@ -64,7 +64,7 @@
 
     button.chip{
       padding:10px 14px; border:1px solid #ddd; background:#f8f9fa; border-radius:999px;
-      cursor:pointer; transition: all .15s ease; user-select:none;
+      cursor:pointer; transition: all .15s ease; user-select:none; pointer-events:auto;
     }
     button.chip:hover{ background:#eee; }
     button.chip.active{
@@ -102,6 +102,26 @@
     }
     .color-columns .chip{ width:100%; text-align:center; }
 
+    /* Manual/Custom garment inputs */
+    .inline-input{
+      display:flex; gap:8px; align-items:center; max-width:420px; margin-top:6px; flex-wrap:wrap;
+    }
+    .inline-input .money{
+      display:flex; align-items:center; border:1px solid #ddd; background:#fff; border-radius:10px; padding:8px 10px; width:160px;
+    }
+    .inline-input .money span{ color:#888; margin-right:4px; }
+    .inline-input .money input{
+      border:0; outline:0; width:100%; font:inherit; padding:0; min-width:0;
+    }
+    .inline-input .text{
+      display:flex; align-items:center; border:1px solid #ddd; background:#fff; border-radius:10px; padding:8px 10px; width:240px;
+    }
+    .inline-input .text input{ border:0; outline:0; width:100%; font:inherit; padding:0; min-width:0; }
+    .badge{
+      display:inline-block; margin-top:6px; padding:.25rem .5rem; border-radius:9999px; border:1px solid #e5e7eb; color:#666; font-size:12px;
+    }
+    .badge.active{ border-color:#2563eb; color:#1e3a8a; background:#eff6ff; }
+
     dialog#dtfModal {
       border:0; border-radius:12px; padding:0; max-width:520px; width:92vw;
       box-shadow: 0 10px 40px rgba(0,0,0,.25);
@@ -117,7 +137,7 @@
 @media (max-width: 1024px) {
   .qqc{
     display:grid;
-    grid-template-columns: 1fr;     /* one column */
+    grid-template-columns: 1fr;
     gap: 12px;
     min-height: 100dvh;
   }
@@ -129,50 +149,31 @@
     border-bottom: 1px solid #eee;
     padding: 12px 16px;
   }
-  main{ padding: 12px 16px 24px; }
+  main{ padding: 12px 16px 24px; z-index:100; }
 
-  /* brand bar sizing */
   .brandbar{ gap: 8px; }
   .brandbar img{ height: 28px; max-width: 120px; }
-  .tenant-badge{
-    font-size: 10px;
-    padding: 3px 6px;
-    border-radius: 8px;
-  }
+  .tenant-badge{ font-size: 10px; padding: 3px 6px; border-radius: 8px; }
 
-  /* rows of chips scroll horizontally instead of wrapping */
   .chips{
-    display:flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 6px;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
+    display:flex; gap: 10px; overflow-x: auto; padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;
   }
-  .chips .chip{
-    flex: 0 0 auto;
-    scroll-snap-align: start;
-  }
+  .chips .chip{ flex: 0 0 auto; scroll-snap-align: start; }
 
-  /* garment buttons row spacing */
   #garment-chips .chip{ white-space: nowrap; }
 
-  /* color selectors: 2 columns on tablet */
   #color-grid .card{ padding: 10px; }
   .color-columns{ display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
   .color-columns .chip{ width: 100%; }
 
-  /* actions area full-width */
   .actions{ flex-wrap: wrap; gap: 8px; }
   .actions .btn,
-  .actions input[type="email"]{
-    width: 100%;
-  }
+  .actions input[type="email"]{ width: 100%; }
 }
 
-/* phone portrait: tighter paddings & 1-column color grid */
+/* phone portrait */
 @media (max-width: 640px) {
-  /* headings and numbers */
   h1{ font-size: 24px; }
   #live-total{ font-size: 24px; }
   .note,.mini{ font-size: 12px; }
@@ -183,10 +184,8 @@
   .chips{ gap: 8px; }
   .chips .chip{ padding: 9px 12px; font-size: 14px; }
 
-  /* color grid compresses to 1 column */
   .color-columns{ grid-template-columns: 1fr; }
 
-  /* make the “Email Estimate” & “Quick Quote” more tappable */
   .btn{ padding: 12px 14px; font-weight: 600; }
 }
 
@@ -209,7 +208,7 @@
 
       <h1>
         QuickQuote Console
-        <span class="beta-badge">v1.0</span>
+        <span class="beta-badge">v1.1.0</span>
       </h1>
       <div class="tag">Part of the ScreenPrintBot family</div>
 
@@ -242,8 +241,32 @@
           {% for g in garments %}
             <button class="chip" data-gkey="{{ g.key }}">{{ g.label }} — ${{ '%.2f'|format(g.cost) }}</button>
           {% endfor %}
+          <!-- NEW: Custom Garment chip -->
+          <button class="chip" id="custom-garment-chip" title="Enter a name and cost for a garment not listed">Custom Garment</button>
         </div>
         <div class="mini muted">Buttons show <em>shop cost</em>. Client price uses the markup in config.</div>
+
+        <!-- NEW: Custom garment inputs -->
+        <div class="mini" style="margin-top:10px;"><em>Or enter a custom garment</em></div>
+        <div class="inline-input" id="manual-cost-wrap">
+          <div class="text">
+            <input type="text" id="manual_garment_label" placeholder="Custom garment name (optional)" aria-label="Custom garment name">
+          </div>
+          <div class="money">
+            <span>$</span>
+            <input
+              type="text"
+              inputmode="decimal"
+              pattern="^\\d+(?:\\.\\d{1,2})?$"
+              placeholder="0.00"
+              id="manual_garment_cost"
+              aria-label="Custom garment cost"
+            />
+          </div>
+          <button type="button" class="btn" id="clear_manual_cost">Clear</button>
+        </div>
+        <div id="manual-badge" class="badge">Preset Garment Mode</div>
+        <div class="mini muted">When a custom cost is set, the quote uses your custom garment instead of a preset.</div>
       </div>
 
       <!-- Step 3: Placements -->
@@ -301,18 +324,52 @@
           </button>
 
           {% set tg = (x.tagging_per_shirt if x.tagging_per_shirt is not none else 0) %}
-          <button class="chip" data-extra="tagging" title="Tagging: +${{ '%.2f'|format(tg) }} per shirt">
+          <button class="chip" data-extra="tagging" title="Tagging (+/shirt)">
             Tagging (+/shirt)
           </button>
         </div>
       </div>
+
+      <!-- Upsell Items (separate from Extras) -->
+      {% set ups = cfg.console.upsell_module or {} %}
+      {% if ups.enabled %}
+      <div class="row" id="upsell-section">
+        <strong>{{ ups.title or 'Upsell Items' }}</strong>
+        <div class="chips" id="upsell-chips" role="radiogroup" aria-label="Upsell Items">
+          {% for it in (ups['items'] or []) %}
+            <button class="chip" type="button"
+                    data-ukey="{{ it.key }}"
+                    data-ulabel="{{ it.label }}"
+                    data-urate="{{ '%.6f'|format(it.rate_per_sqft) }}">{{ it.label }}</button>
+          {% endfor %}
+        </div>
+
+        <div id="upsell-inputs" style="display:none; margin-top:12px;">
+          <div class="inline-input" style="max-width:560px;">
+            <div class="text" style="width:160px;">
+              <input id="upsell-width" type="number" step="0.1" min="0.1"
+                     max="{{ ups.defaults.max_width_in or 300 }}" placeholder="Width (in)" aria-label="Width (in)">
+            </div>
+            <div class="text" style="width:160px;">
+              <input id="upsell-height" type="number" step="0.1" min="0.1"
+                     max="{{ ups.defaults.max_height_in or 300 }}" placeholder="Height (in)" aria-label="Height (in)">
+            </div>
+            <div class="text" style="width:120px;">
+              <input id="upsell-qty" type="number" step="1" min="1" value="1" placeholder="Qty" aria-label="Quantity">
+            </div>
+          </div>
+          <div class="mini" id="upsell-meta" style="margin-top:8px;"></div>
+          <div class="badge" id="upsell-total" style="margin-top:6px;">Upsell: $0.00</div>
+        </div>
+      </div>
+      {% endif %}
 
       <!-- Actions -->
       <div class="actions">
         <button class="btn" id="reset">Reset</button>
         <button class="btn primary" id="quick-quote">Quick Quote</button>
 
-        <!-- (2) Email controls (NEW) -->
+        <!-- Email controls -->
         <div class="email-controls" style="display:flex; gap:8px; align-items:center;">
           <input id="custEmail" type="email" placeholder="customer@email.com"
                  value="quote@screenprintbot.com" style="padding:8px;min-width:260px;">
@@ -338,10 +395,13 @@
   </dialog>
 
   <script>
+  document.addEventListener('DOMContentLoaded', () => {
+  try {
   const TENANT = "{{ tenant|default('demo') }}";
   const SC_CFG = {{ (cfg.console.screen_charges or {})|tojson }};
   const SHOW_ADMIN = {{ (cfg.console.show_admin_controls if cfg.console and cfg.console.show_admin_controls else false)|tojson }};
-  const EXTRAS_CFG = {{ (cfg.console.extras or {})|tojson }}; // per-shirt rates + rush multiplier
+  const EXTRAS_CFG = {{ (cfg.console.extras or {})|tojson }};
+  const UPS_CFG = {{ (cfg.console.upsell_module or {})|tojson }};
   const MAX_COLORS_DEFAULT = {{ (cfg.console.max_colors if cfg.console and cfg.console.max_colors else 6)|tojson }};
   const MAX_COLORS_PER_PL  = {{ (cfg.console.max_colors_per_placement if cfg.console and cfg.console.max_colors_per_placement else {})|tojson }};
   const MIN_QTY_SCREENPRINT = 48;
@@ -353,12 +413,21 @@
     placements: [],
     colors: {},
     extras: { rush:false, fold_bag:false, names:false, numbers:false, heat_press:false, tagging:false },
-    adminWaiveScreens: false
+    adminWaiveScreens: false,
+    manualCost: null,
+    manualLabel: "",
+    // Upsell state
+    upsell: {
+      key: null, label: null, rate: null,
+      width: null, height: null, qty: null,
+      area_sqft: null, line_total: null
+    }
   };
 
   // ---------- Elements ----------
   const qtyWrap   = document.getElementById('qty-chips');
   const garmentWrap = document.getElementById('garment-chips');
+  const customChip = document.getElementById('custom-garment-chip');
   const placeWrap = document.getElementById('place-chips');
   const colorGrid = document.getElementById('color-grid');
   const colorsSec = document.getElementById('colors-section');
@@ -372,10 +441,25 @@
   const dtfDialog = document.getElementById('dtfModal');
   const dtfOk = document.getElementById('dtfOk');
 
-  // (2) new email elements
+  // Email elements
   const emailInput = document.getElementById('custEmail');
   const emailBtn   = document.getElementById('email');
   const emailStatus= document.getElementById('emailStatus');
+
+  // Custom/Manual elements
+  const manualInput = document.getElementById('manual_garment_cost');
+  const manualLabelInput = document.getElementById('manual_garment_label');
+  const manualClear = document.getElementById('clear_manual_cost');
+  const manualBadge = document.getElementById('manual-badge');
+
+  // Upsell elements
+  const upsChips  = document.getElementById('upsell-chips');
+  const upsInputs = document.getElementById('upsell-inputs');
+  const upsW = document.getElementById('upsell-width');
+  const upsH = document.getElementById('upsell-height');
+  const upsQ = document.getElementById('upsell-qty');
+  const upsMeta  = document.getElementById('upsell-meta');
+  const upsTotal = document.getElementById('upsell-total');
 
   // ---------- Helpers ----------
   function esc(s){
@@ -398,10 +482,20 @@
       .map(p => ({ name: p, colors: S.colors[p] || 0 }))
       .filter(pl => pl.colors > 0);
   }
-  function isReady(){
+  function inCustomMode(){
+    return Number.isFinite(S.manualCost);
+  }
+  function upsellReady(){
+    return !!(S.upsell.key && S.upsell.rate && S.upsell.width > 0 && S.upsell.height > 0 && S.upsell.qty > 0);
+  }
+  function screenprintReady(){
     return Number.isFinite(S.qty) && S.qty > 0
-        && !!S.garmentKey
+        && (S.garmentKey || inCustomMode())
         && selectedPlacementsWithColors().length > 0;
+  }
+  function isReady(){
+    // Allow normal path OR upsell-only path
+    return screenprintReady() || upsellReady();
   }
   function maxColorsFor(placement){
     return MAX_COLORS_PER_PL?.[placement] ?? MAX_COLORS_DEFAULT ?? 6;
@@ -421,15 +515,97 @@
     }
   })();
 
+  // ---------- Upsell UI ----------
+if (upsChips) {
+  upsChips.addEventListener('click', e => {
+    const btn = e.target.closest('button.chip'); 
+    if (!btn) return;
+
+    const alreadyActive = btn.classList.contains('active');
+
+    // clear all chips
+    upsChips.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
+
+    if (alreadyActive) {
+      // turning OFF upsell
+      S.upsell = { key:null,label:null,rate:null,width:null,height:null,qty:null,area_sqft:null,line_total:null };
+      upsInputs.style.display = 'none';
+      upsMeta.textContent = '';
+      upsTotal.textContent = 'Upsell: $0.00';
+    } else {
+      // turning ON new upsell
+      btn.classList.add('active');
+      S.upsell.key = btn.dataset.ukey || null;
+      S.upsell.label = btn.dataset.ulabel || null;
+      S.upsell.rate = toNumOrNull(btn.dataset.urate) || null;
+
+      upsInputs.style.display = 'block';
+      calcUpsell();
+    }
+    renderLive();
+  });
+
+    [upsW, upsH, upsQ].forEach(el => el?.addEventListener('input', () => {
+      calcUpsell(); renderLive();
+    }));
+  }
+
+  function calcUpsell(){
+    if (!S.upsell.key || !S.upsell.rate) {
+      upsMeta && (upsMeta.textContent = '');
+      upsTotal && (upsTotal.textContent = 'Upsell: $0.00');
+      S.upsell.width = S.upsell.height = S.upsell.qty = S.upsell.area_sqft = S.upsell.line_total = null;
+      return;
+    }
+    const w = toNumOrNull(upsW?.value); const h = toNumOrNull(upsH?.value); const q = parseInt(upsQ?.value||'0',10);
+    S.upsell.width = w || null; S.upsell.height = h || null; S.upsell.qty = Number.isFinite(q) && q>0 ? q : null;
+
+    if (w > 0 && h > 0 && q > 0){
+      const sqft = (w*h)/144.0;
+      const line = +(sqft * S.upsell.rate * q).toFixed(UPS_CFG?.ui?.precision ?? 2);
+      S.upsell.area_sqft = +sqft.toFixed(2);
+      S.upsell.line_total = line;
+
+      upsMeta && (upsMeta.textContent = `Area: ${S.upsell.area_sqft.toFixed(2)} sq ft • Rate: ${money(S.upsell.rate)} / sq ft`);
+const lbl = S.upsell.label || 'Upsell';
+upsTotal && (upsTotal.textContent = `${lbl}: ${money(line)}`);
+    } else {
+      upsMeta && (upsMeta.textContent = '');
+      upsTotal && (upsTotal.textContent = 'Upsell: $0.00');
+      S.upsell.area_sqft = null;
+      S.upsell.line_total = null;
+    }
+  }
+
   // ---------- Request payload ----------
   function payload() {
-    return {
+    const p = {
       quantity: S.qty,
-      placements: selectedPlacementsWithColors(),   // only send valid placements
-      garment_key: S.garmentKey,
+      placements: selectedPlacementsWithColors(),
       extras: S.extras,
       adminWaiveScreens: S.adminWaiveScreens
     };
+    if (inCustomMode()) {
+      p.manual_garment_cost = +S.manualCost.toFixed(2);
+      if (S.manualLabel && S.manualLabel.trim()) p.manual_garment_label = S.manualLabel.trim();
+    } else if (S.garmentKey) {
+      p.garment_key = S.garmentKey;
+    }
+
+    // include upsell if ready or partially filled (backend can validate)
+    if (S.upsell.key && S.upsell.rate) {
+      p.upsell = {
+        key: S.upsell.key,
+        label: S.upsell.label,
+        rate_per_sqft: S.upsell.rate,
+        width_in: S.upsell.width,
+        height_in: S.upsell.height,
+        qty: S.upsell.qty,
+        area_sqft: S.upsell.area_sqft,
+        line_total_hint: S.upsell.line_total
+      };
+    }
+    return p;
   }
 
   // ---------- Deep-scan for server-provided line items ----------
@@ -488,10 +664,10 @@
     const qty   = toNumOrNull(data.quantity) ?? toNumOrNull(S?.qty) ?? 0;
 
     // Garment prices
-    const label     = data.params?.garment_label || 'Garment';
-    const shopCost  = toNumOrNull(data.params?.garment_cost) ?? 0;                 // our cost
-    const markupPct = toNumOrNull(data.params?.garment_markup_pct) ?? 0;           // e.g., 0.40
-    const custUnit  = +(shopCost * (1 + (markupPct || 0))).toFixed(2);             // customer price per shirt
+    const label     = data.params?.garment_label || (inCustomMode() ? (S.manualLabel || 'Custom garment') : 'Garment');
+    const shopCost  = toNumOrNull(data.params?.garment_cost) ?? 0;
+    const markupPct = toNumOrNull(data.params?.garment_markup_pct) ?? 0;
+    const custUnit  = +(shopCost * (1 + (markupPct || 0))).toFixed(2);
     const garmentsTotal = +(qty * custUnit).toFixed(2);
 
     // Totals
@@ -531,7 +707,7 @@
       lines.push({ group:'Garment', label: `${label} (${qty} × ${money(custUnit)})`, amount: garmentsTotal });
     }
 
-    // ---- Ink/Print: prefer actual server per-placement costs when present ----
+    // ---- Ink/Print ----
     const serverLocs = Array.isArray(data.locations) ? data.locations : [];
     if (serverLocs.length) {
       serverLocs.forEach(loc => {
@@ -546,7 +722,6 @@
         });
       });
     } else {
-      // Fallback: infer print-only from totals and split among selected placements
       const extrasSumFromTotals =
         Object.entries(data.extras || {})
           .filter(([k,v]) => /_total$/i.test(k) && toNumOrNull(v) > 0)
@@ -595,7 +770,7 @@
       lines.push({ group:'Ink/Print', label: 'Screens', amount: 0, meta: 'Included' });
     }
 
-    // Extras section — prefer server totals if present
+    // Extras section
     if (data.extras) {
       Object.entries(data.extras).forEach(([k,v])=>{
         const n = toNumOrNull(v);
@@ -607,31 +782,25 @@
       if (rushFee > 0 && !('rush_total' in (data.extras||{}))) {
         lines.push({ group:'Extras', label:'Rush', amount: rushFee });
       }
-    } else {
-      // fallback to config rates + toggles
-      const addPerShirtExtra = (key, nice) => {
-        const rate = toNumOrNull(EXTRAS_CFG?.[`${key}_per_shirt`]) ?? 0;
-        if (S.extras?.[key] && rate > 0 && qty > 0) {
-          const amt = +(qty * rate).toFixed(2);
-          lines.push({ group:'Extras', label: `${nice} (${qty} × ${money(rate)})`, amount: amt });
-        }
-      };
-      addPerShirtExtra('fold_bag',  'Fold & Bag');
-      addPerShirtExtra('names',     'Names');
-      addPerShirtExtra('numbers',   'Numbers');
-      addPerShirtExtra('heat_press','Heat Press');
-      addPerShirtExtra('tagging',   'Tagging');
-      if (rushFee > 0) lines.push({ group:'Extras', label:'Rush', amount: rushFee });
+    }
+
+    // ---- Upsell (if backend includes it) ----
+    if (data.upsell && toNumOrNull(data.upsell.total) > 0) {
+      const u = data.upsell;
+      const dims = (u.width_in && u.height_in)
+        ? ` — ${(+u.width_in).toFixed(1)}" × ${(+u.height_in).toFixed(1)}", Qty ${u.qty||1}`
+        : '';
+      lines.push({ group:'Upsell Items', label: `${u.label || u.key}${dims}`, amount: +u.total });
     }
 
     // Footer rows
-    lines.push({ label: 'Subtotal', amount: subtotal });
-    if (tax  > 0) lines.push({ label: 'Tax', amount: tax });
+    if (subtotal != null) lines.push({ label: 'Subtotal', amount: subtotal });
+    if (tax  > 0)        lines.push({ label: 'Tax', amount: tax });
 
     return lines;
   }
 
-  // ---------- Render breakdown (prefers server, falls back to synthesized) ----------
+  // ---------- Render breakdown ----------
   function renderBreakdown(data){
     const renderAmount = (li) => {
       const n = toNumOrNull(li.amount);
@@ -668,17 +837,31 @@
       });
     }
 
-    const grand = data.totals?.client_grand_total ?? data.totals?.grand_total ?? data.totals?.total;
-    if (grand != null){
-      html += `<div class="sep"></div>
-               <div class="line"><strong>Total</strong><strong>${money(grand)}</strong></div>`;
+    // --- Footer: totals + price-per-shirt (exclude upsell from PPS) ---
+const grand = data.totals?.client_grand_total ?? data.totals?.grand_total ?? data.totals?.total;
+if (grand != null){
+  const upsellTotal = toNumOrNull(data.upsell?.total) ?? 0;
+  const printedSubtotal = +(grand - upsellTotal).toFixed(2);
 
-      const qty = toNumOrNull(data.quantity) ?? toNumOrNull(S?.qty);
-      if (qty && qty > 0) {
-        const perShirt = grand / qty;
-        html += `<div class="line"><span class="muted">Price per shirt</span><span>${money(perShirt)}</span></div>`;
-      }
-    }
+  html += `<div class="sep"></div>`;
+  if (upsellTotal > 0){
+    // show printed shirts separate from upsell
+    html += `<div class="line"><span>Printed shirts</span><strong>${money(printedSubtotal)}</strong></div>`;
+    html += `<div class="line"><span>Upsell items</span><strong>${money(upsellTotal)}</strong></div>`;
+    html += `<div class="line"><strong>Total</strong><strong>${money(grand)}</strong></div>`;
+  } else {
+    html += `<div class="line"><strong>Total</strong><strong>${money(grand)}</strong></div>`;
+  }
+
+  // Price per shirt = garment (client) + print per shirt — NO upsell, NO screens, NO rush
+  const unitFromCosts =
+    (toNumOrNull(data.costs?.garment_client_per_shirt) ?? 0) +
+    (toNumOrNull(data.costs?.print_per_shirt) ?? 0);
+
+  if (unitFromCosts > 0){
+    html += `<div class="line"><span class="muted">Price per shirt</span><span>${money(unitFromCosts)}</span></div>`;
+  }
+}
     liveBreak.innerHTML = html || '—';
   }
 
@@ -688,9 +871,63 @@
     renderLive();
   });
 
-  // Enforce DTF recommendation (<48) on selection and on Quick Quote
+  // Custom mode helpers
+  function enterCustomMode(){
+    garmentWrap.querySelectorAll('button.chip[data-gkey]').forEach(b => b.classList.remove('active'));
+    if (customChip) customChip.classList.add('active');
+    S.garmentKey = null;
+    manualBadge.textContent = 'Custom Garment Mode';
+    manualBadge.classList.add('active');
+  }
+  function exitCustomMode(){
+    if (customChip) customChip.classList.remove('active');
+    manualBadge.textContent = 'Preset Garment Mode';
+    manualBadge.classList.remove('active');
+  }
+  function syncCustomMode(){
+    if (inCustomMode()) enterCustomMode(); else exitCustomMode();
+  }
+
+  // Custom garment inputs
+  if (manualInput && manualClear && manualBadge) {
+    manualInput.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/[^\d.]/g,'').replace(/(\..*?)\..*/,'$1');
+      const parts = v.split('.');
+      if (parts[1]?.length > 2) v = parts[0] + '.' + parts[1].slice(0,2);
+      let n = toNumOrNull(v);
+      if (n != null && n > 100) { n = 100; v = '100.00'; }
+      e.target.value = v;
+      S.manualCost = (n != null && n >= 0) ? n : null;
+      if (S.manualCost != null) enterCustomMode(); else exitCustomMode();
+      renderLive();
+    });
+
+    manualLabelInput?.addEventListener('input', (e) => {
+      S.manualLabel = (e.target.value || '').slice(0, 80);
+      if (inCustomMode()) enterCustomMode();
+      renderLive();
+    });
+
+    manualClear.addEventListener('click', () => {
+      manualInput.value = '';
+      manualLabelInput && (manualLabelInput.value = '');
+      S.manualCost = null;
+      S.manualLabel = '';
+      syncCustomMode();
+      renderLive();
+    });
+  }
+
+  // Click custom chip to focus inputs
+  customChip?.addEventListener('click', () => {
+    enterCustomMode();
+    setTimeout(()=> manualInput?.focus(), 0);
+    renderLive();
+  });
+
+  // Enforce DTF recommendation (<48) — applies only to garment qty path
   function showDTFModal(){
-    try { dtfDialog.showModal(); } catch { /* Safari older: fallback */ alert('DTF recommended for small runs.\nMinimum for screen print is 48.'); }
+    try { dtfDialog.showModal(); } catch { alert('DTF recommended for small runs.\nMinimum for screen print is 48.'); }
   }
   dtfOk?.addEventListener('click', ()=> dtfDialog.close());
 
@@ -698,6 +935,12 @@
     if (!isReady()) {
       liveBreak.textContent = 'Waiting for inputs…';
       liveTotal.textContent = '$0.00';
+      // If upsell selected but missing dims/qty, hint the user
+      if (S.upsell.key && !upsellReady()) {
+        liveGarment.textContent = `${S.upsell.label || 'Upsell'} — enter width, height, and qty`;
+      } else {
+        liveGarment.textContent = 'Select a garment to begin';
+      }
       return;
     }
     const body = JSON.stringify(payload());
@@ -721,18 +964,23 @@
         data.totals?.client_grand_total ?? data.totals?.grand_total ?? data.totals?.total ?? 0
       );
 
-      // Garment mini line (show CUSTOMER unit price)
-      const garmentLabel = data.params?.garment_label || '';
-      const garmentCost = toNumOrNull(data.params?.garment_cost);
-      const garmentMarkupPct = toNumOrNull(data.params?.garment_markup_pct);
-      const parts = [];
-      if (garmentLabel) parts.push(garmentLabel);
-      if (garmentCost != null) {
-        const custUnit = +(garmentCost * (1 + (garmentMarkupPct || 0))).toFixed(2);
-        parts.push(`customer ${money(custUnit)}`);
+      // Garment helper text (or upsell-only)
+      if (screenprintReady()) {
+        const garmentLabel = data.params?.garment_label || (inCustomMode() ? (S.manualLabel || 'Custom garment') : '');
+        const garmentCost = toNumOrNull(data.params?.garment_cost);
+        const garmentMarkupPct = toNumOrNull(data.params?.garment_markup_pct);
+        const parts = [];
+        if (garmentLabel) parts.push(garmentLabel);
+        if (garmentCost != null) {
+          const custUnit = +(garmentCost * (1 + (garmentMarkupPct || 0))).toFixed(2);
+          parts.push(`customer ${money(custUnit)}`);
+        }
+        if (garmentMarkupPct != null && isFinite(garmentMarkupPct)) parts.push(`markup ${(garmentMarkupPct*100).toFixed(0)}%`);
+        if (inCustomMode()) parts.push('custom');
+        liveGarment.textContent = parts.length ? parts.join(' — ') : 'Select a garment to begin';
+      } else if (upsellReady()) {
+        liveGarment.textContent = `${S.upsell.label} — ${S.upsell.width.toFixed(1)}" × ${S.upsell.height.toFixed(1)}", Qty ${S.upsell.qty}`;
       }
-      if (garmentMarkupPct != null && isFinite(garmentMarkupPct)) parts.push(`markup ${(garmentMarkupPct*100).toFixed(0)}%`);
-      liveGarment.textContent = parts.length ? parts.join(' — ') : 'Select a garment to begin';
 
       // Screens meter
       if (data.screen_charges) {
@@ -748,11 +996,11 @@
         screensCounter.classList.remove('active');
       }
 
-      // Breakdown (prefer server, fallback to synthesized)
+      // Breakdown
       renderBreakdown(data);
 
-      // expose for quick inspection
-      window.__lastQuote = data;            // <— used by email handler
+      // expose for email
+      window.__lastQuote = data;
       window.__lastPayload = JSON.parse(body);
     })
     .catch(err => {
@@ -783,13 +1031,25 @@
     renderLive();
   });
 
-  // Garments
+  // Garments (preset)
   garmentWrap.addEventListener('click', e => {
-    const btn = e.target.closest('button.chip');
+    const btn = e.target.closest('button.chip[data-gkey]');
     if (!btn) return;
     S.garmentKey = btn.dataset.gkey || null;
-    [...garmentWrap.querySelectorAll('.chip')].forEach(b => b.classList.remove('active'));
+    S.manualCost = null; S.manualLabel = '';
+    manualInput && (manualInput.value = '');
+    manualLabelInput && (manualLabelInput.value = '');
+    syncCustomMode();
+
+    garmentWrap.querySelectorAll('button.chip').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    renderLive();
+  });
+
+  // Custom chip explicit
+  customChip?.addEventListener('click', () => {
+    enterCustomMode();
+    setTimeout(()=> manualInput?.focus(), 0);
     renderLive();
   });
 
@@ -854,7 +1114,12 @@
 
   // Actions
   document.getElementById('reset').addEventListener('click', () => {
-    Object.assign(S, { qty:null, garmentKey:null, placements:[], colors:{}, extras:{ rush:false, fold_bag:false, names:false, numbers:false, heat_press:false, tagging:false }, adminWaiveScreens:false });
+    Object.assign(S, {
+      qty:null, garmentKey:null, placements:[], colors:{},
+      extras:{ rush:false, fold_bag:false, names:false, numbers:false, heat_press:false, tagging:false },
+      adminWaiveScreens:false, manualCost:null, manualLabel:'',
+      upsell:{ key:null,label:null,rate:null,width:null,height:null,qty:null,area_sqft:null,line_total:null }
+    });
     document.querySelectorAll('.chip.active').forEach(b => b.classList.remove('active'));
     colorGrid.innerHTML = ''; colorsSec.style.display = 'none';
     liveTotal.textContent = '$0.00'; liveBreak.textContent = 'Waiting for inputs…';
@@ -862,61 +1127,97 @@
     if (waiveCb) waiveCb.checked = false;
     screensCounter.textContent = SC_CFG.enabled ? 'Screens: 0' : 'Screens: included';
     screensCounter.classList.remove('active');
+    manualInput && (manualInput.value = '');
+    manualLabelInput && (manualLabelInput.value = '');
+    if (upsInputs) upsInputs.style.display = 'none';
+    syncCustomMode();
   });
 
   document.getElementById('quick-quote').addEventListener('click', () => {
-    if (S.qty && S.qty < MIN_QTY_SCREENPRINT) { showDTFModal(); return; }
+    // Only gate the garment path with DTF modal
+    if (S.qty && S.qty < MIN_QTY_SCREENPRINT && screenprintReady()) { showDTFModal(); return; }
     if (!window.__lastQuote) return alert('Please complete the steps first.');
     alert(`Client Total: ${document.getElementById('live-total').textContent}`);
   });
 
-  // (3) email body helpers (NEW)
-  function renderEstimateHTML(q) {
-    const fmt = n => (typeof n === "number" ? n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) : n);
-    const total = q?.totals?.client_grand_total ?? q?.totals?.grand_total ?? q?.totals?.total ?? null;
-    const qty   = q?.quantity ?? S.qty;
-    const garment = q?.params?.garment_label ?? null;
+function renderEstimateHTML(q) {
+  const fmt = n => (typeof n === "number"
+    ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : n);
 
-    const rows = [];
-    rows.push(`<h1 style="margin:0 0 8px;font-family:system-ui,Segoe UI,Arial;">Estimate</h1>`);
-    rows.push(`<p style="margin:0 0 16px;font-size:14px;color:#444">Thanks for the opportunity! Here’s your estimate.</p>`);
-    rows.push(`<table style="border-collapse:collapse;width:100%;max-width:560px;font:14px/1.4 system-ui,Segoe UI,Arial">`);
-    if (total != null) rows.push(`<tr><td style="padding:8px 0;font-weight:600">Total</td><td style="padding:8px 0;text-align:right">$${fmt(+total)}</td></tr>`);
-    if (qty) rows.push(`<tr><td style="padding:6px 0">Quantity</td><td style="padding:6px 0;text-align:right">${qty}</td></tr>`);
-    if (garment) rows.push(`<tr><td style="padding:6px 0">Garment</td><td style="padding:6px 0;text-align:right">${garment}</td></tr>`);
-    const placements = Array.isArray(q?.locations) ? q.locations
-      .map(loc => `${(loc.location||'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase())} — ${loc.colors||0} color${(loc.colors||0)>1?'s':''}`) : [];
-    if (placements.length) rows.push(`<tr><td style="padding:6px 0">Placements</td><td style="padding:6px 0;text-align:right">${placements.join(', ')}</td></tr>`);
-    rows.push(`</table>`);
-    rows.push(`<p style="margin-top:16px;font-size:12px;color:#777">Reply to this email with any changes and we’ll update the quote.</p>`);
-    return rows.join("");
-  }
-  function renderTextFallback(html) {
-    return html.replace(/<style[\s\S]*?<\/style>/gi,"")
-               .replace(/<[^>]+>/g," ")
-               .replace(/\s{2,}/g," ")
-               .trim();
-  }
+  const total = q?.totals?.client_grand_total ?? q?.totals?.grand_total ?? q?.totals?.total ?? 0;
+  const qty   = q?.quantity ?? S.qty ?? 0;
+  const garment = q?.params?.garment_label ?? (inCustomMode() ? (S.manualLabel || 'Custom garment') : null);
 
-  async function sendEstimate({to, subject, html}) {
-    const res = await fetch("/api/email-estimate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customer_email: to,
-        subject,
-        html_body: html,
-        text_body: renderTextFallback(html),
-      }),
-    });
-    const data = await res.json().catch(()=> ({}));
-    if (!res.ok) throw new Error(data.Message || data.error || `HTTP ${res.status}`);
-    return data;
+  // Upsell (separate line + removed from per-shirt calc)
+  const upsellTotal = toNumOrNull(q?.upsell?.total) || 0;
+
+  // Per-shirt (exclude upsell)
+  const shirtsSubtotal = Math.max(0, +((toNumOrNull(total) || 0) - upsellTotal).toFixed(2));
+  const perShirt = qty > 0 ? shirtsSubtotal / qty : null;
+
+  const rows = [];
+  rows.push(`<h1 style="margin:0 0 8px;font-family:system-ui,Segoe UI,Arial;">Estimate</h1>`);
+  rows.push(`<p style="margin:0 0 16px;font-size:14px;color:#444">Thanks for the opportunity! Here’s your estimate.</p>`);
+  rows.push(`<table style="border-collapse:collapse;width:100%;max-width:560px;font:14px/1.4 system-ui,Segoe UI,Arial">`);
+
+  // Grand total first
+  rows.push(`<tr><td style="padding:8px 0;font-weight:600">Total</td><td style="padding:8px 0;text-align:right">$${fmt(+total)}</td></tr>`);
+
+  // Printed shirts subtotal (excludes upsell) + per-shirt
+  rows.push(`<tr><td style="padding:6px 0">Printed shirts</td><td style="padding:6px 0;text-align:right">$${fmt(shirtsSubtotal)}</td></tr>`);
+  if (qty && perShirt != null) {
+    rows.push(`<tr><td style="padding:6px 0;color:#555">Price per shirt</td><td style="padding:6px 0;text-align:right;color:#555">$${fmt(perShirt)}</td></tr>`);
   }
 
-  // (4) wire the Email Estimate button (NEW)
+  // Upsell as its own line (only if present)
+  if (upsellTotal > 0) {
+    const u = q.upsell;
+    const dims = (u.width_in && u.height_in)
+      ? `${(+u.width_in).toFixed(1)}" × ${(+u.height_in).toFixed(1)}", Qty ${u.qty||1}`
+      : '';
+    rows.push(`<tr><td style="padding:6px 0">Upsell — ${esc(u.label || u.key || 'Item')}</td><td style="padding:6px 0;text-align:right">$${fmt(upsellTotal)}${dims ? `<div style="font-size:12px;color:#777;">${dims}</div>` : ''}</td></tr>`);
+  }
+
+  // Details
+  if (qty) rows.push(`<tr><td style="padding:6px 0">Quantity</td><td style="padding:6px 0;text-align:right">${qty}</td></tr>`);
+  if (garment) rows.push(`<tr><td style="padding:6px 0">Garment</td><td style="padding:6px 0;text-align:right">${esc(garment)}</td></tr>`);
+  const placements = Array.isArray(q?.locations) ? q.locations
+    .map(loc => `${(loc.location||'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase())} — ${loc.colors||0} color${(loc.colors||0)>1?'s':''}`) : [];
+  if (placements.length) rows.push(`<tr><td style="padding:6px 0">Placements</td><td style="padding:6px 0;text-align:right">${placements.join(', ')}</td></tr>`);
+
+  rows.push(`</table>`);
+  rows.push(`<p style="margin-top:16px;font-size:12px;color:#777">Reply to this email with any changes and we’ll update the quote.</p>`);
+  return rows.join("");
+}
+
+function renderTextFallback(html) {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+async function sendEstimate({ to, subject, html }) {
+  const res = await fetch("/api/email-estimate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      customer_email: to,
+      subject,
+      html_body: html,
+      text_body: renderTextFallback(html),
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.Message || data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+  // Wire the Email Estimate button
   emailBtn.addEventListener('click', async () => {
-    if (S.qty && S.qty < MIN_QTY_SCREENPRINT) { showDTFModal(); return; }
+    if (S.qty && S.qty < MIN_QTY_SCREENPRINT && screenprintReady()) { showDTFModal(); return; }
     if (!window.__lastQuote) { alert('Please complete the steps first.'); return; }
 
     const to = (emailInput.value || '').trim();
@@ -935,6 +1236,12 @@
     } finally {
       emailBtn.disabled = false; emailBtn.textContent = old;
     }
+  });
+  } catch (err) {
+    console.error('Console init failed:', err);
+    const liveBreak = document.getElementById('live-breakdown');
+    if (liveBreak) liveBreak.textContent = 'Error initializing console. Check console for details.';
+  }
   });
   </script>
 </body>

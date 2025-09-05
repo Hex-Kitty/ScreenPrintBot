@@ -1,57 +1,53 @@
 # ScreenPrintBot
 
 ScreenPrintBot is a Flask-based application that generates instant screen-printing quotes and branded PDF/email summaries for print shops.  
-It is now at **v1.0.0** and live at [app.screenprintbot.com](https://app.screenprintbot.com).
+It is now at **v1.1.0** and live at [app.screenprintbot.com](https://app.screenprintbot.com).
 
 ---
 
-## 🆕 What’s New (v1.0.0)
-- **Branding & UI**
-  - New ScreenPrintBot identity (logo + favicon + neutral theme).
-  - Per-shop branding via JSON config (logos, colors, markup).
-  - Cleaner console badges (`DEMO`, `v1.0`), tuned spacing and layouts.
-  - Mobile polish: console stacks properly on narrow screens.
-
-- **Email Estimates**
-  - Integrated with [Postmark](https://postmarkapp.com/).
-  - Dedicated message stream (`outbound-estimates`).
-  - Template-driven estimates (alias: `quote_v1`).
-  - Includes shop BCC option (`SHOP_BCC`).
-  - Logs Postmark response codes for debugging.
-
-- **Landing Page**
-  - SaaS-style hero with CTA.
-  - Tenant cards with logos, demo chatbot link, and QuickQuote Console link.
-  - Unified button styles across site.
+## 🆕 What’s New (v1.1.0)
+- **Custom Garment Entry**
+  - Input box for garment label and cost, with clear button and mode badge.
+  - Switches between preset garment mode and custom garment mode automatically.
+- **Upsell Items Module**
+  - Add-on products (Signs, Sublimation, Stickers, DTF).
+  - Width/height/qty inputs with per-sqft pricing.
+  - Totals are displayed separately in console and emails.
+- **Upsell in Estimates**
+  - Upsells excluded from “price per shirt” math.
+  - Now shown as their own section in breakdown + emails.
+- **Email Estimate Enhancements**
+  - Postmark emails mirror live console breakdown.
+  - Includes upsell line items and per-shirt pricing.
+- **Mobile/Responsive Layout**
+  - Sidebar sticky behavior.
+  - Stacked layout under 1024px.
+  - Chip scrolling and improved button spacing.
+- **Reset Behavior**
+  - Resets all fields including custom garment and upsell selections.
+- **UI/UX Polish**
+  - Active upsell badge shows the specific item instead of generic “Upsell”.
+  - Cleaner screens tooltip and label updates.
 
 ---
 
 ## 🚀 Features
-- Multi-location quoting (Front, Back, Left Sleeve, Right Sleeve).
-- Flexible color counts (1–10, config-driven).
-- Per-shop minimums (screen-print vs DTF guardrail).
-- Branded PDF generation with line items and totals.
-- Configurable UI (colors, button styles, logos).
-- Estimate delivery via **Postmark email templates**.
-- Ready for deployment on [Render](https://render.com).
+- **Live quoting:** Instant garment + print pricing.  
+- **Custom Garment Mode:** Enter any garment name and cost if not in presets.  
+- **Upsell Items:** Add banners, stickers, sublimation, or DTF with size-based pricing.  
+- **Extras Module:** Rush, fold & bag, names, numbers, heat press, tagging.  
+- **Multi-location support:** Front, Back, Left Sleeve, Right Sleeve.  
+- **Flexible color counts:** Config-driven, 1–10 colors.  
+- **DTF Guardrail:** Suggests DTF when below per-shop screen-print minimum.  
+- **Branded PDFs & Emails:** Includes shop logo, colors, and Postmark integration.  
+- **Responsive Design:** Works smoothly on desktop, tablet, and mobile.  
+- **Config-driven:** Each shop can define its own garments, colors, markup, and upsell rates via `/clients/{shop}/config.json`.  
 
 ---
 
 ## ⚙️ Configuration
-Each shop is defined by a JSON config in `/clients/`:
-
-```json
-{
-  "id": "demo",
-  "name": "ScreenPrintBot",
-  "logo": "/static/logos/demo.png",
-  "colors": {
-    "accent": "#0d9488"
-  },
-  "buttons": {
-    "bg": "#0d9488"
-  },
-  "pricing": "pricing_demo.json",
-  "min_qty": 48,
-  "bcc": "shop@example.com"
-}
+See `/clients/demo/config.json` for an example of how shops define:  
+- Branding (logo, colors, fonts)  
+- Garment catalog + markup %  
+- Screen charges and extras  
+- Upsell items (labels, per-sqft rates, size limits)  

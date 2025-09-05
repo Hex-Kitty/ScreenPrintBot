@@ -625,6 +625,76 @@ def _apply_color_caps(cfg: dict, pricing: dict, qty: int, locs: List[Dict[str,in
     return out, any_clamped
 # ------------------------------------------------------------
 
+# --------- NEW: Upsell helpers ----------
+def _upsell_rules(cfg: dict) -> dict:
+    """
+    Pulls upsell items and defaults from config.console.upsell_module
+    Returns:
+      {
+        "enabled": bool,
+        "precision": int,
+        "items_map": { key: {"label":..., "rate_per_sqft": float} }
+      }
+    """
+    c = (cfg or {}).get("console", {}) or {}
+    ups = (c.get("upsell_module") or {})
+    items = ups.get("items") or []
+    items_map = {}
+    for it in items:
+        k = (it.get("key") or "").strip()
+        if not k:
+            continue
+        items_map[k] = {
+            "label": it.get("label") or k,
+            "rate_per_sqft": float(it.get("rate_per_sqft", 0.0))
+        }
+    precision = int((ups.get("ui") or {}).get("precision", 2))
+    return {
+        "enabled": bool(ups.get("enabled", False)),
+        "precision": precision,
+        "items_map": items_map
+    }
+
+def _compute_upsell_total_from_payload(cfg: dict, upsell_payload: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Validates and computes upsell totals from the incoming payload against config.
+    Returns None if no valid upsell is present.
+    """
+    if not upsell_payload:
+        return None
+    rules = _upsell_rules(cfg)
+    if not rules["enabled"]:
+        return None
+    key = (upsell_payload.get("key") or "").strip()
+    if not key:
+        return None
+    meta = rules["items_map"].get(key)
+    if not meta:
+        return None  # unknown key for this shop
+    try:
+        width = float(upsell_payload.get("width_in") or 0.0)
+        height = float(upsell_payload.get("height_in") or 0.0)
+        qty = int(upsell_payload.get("qty") or 0)
+    except Exception:
+        return None
+    if width <= 0 or height <= 0 or qty <= 0:
+        return None
+
+    rate = float(meta["rate_per_sqft"])
+    area_sqft = (width * height) / 144.0
+    total = round(area_sqft * rate * qty, rules["precision"])
+
+    return {
+        "key": key,
+        "label": upsell_payload.get("label") or meta["label"],
+        "width_in": round(width, 2),
+        "height_in": round(height, 2),
+        "qty": int(qty),
+        "rate_per_sqft": round(rate, 4),
+        "area_sqft": round(area_sqft, 2),
+        "total": float(total)
+    }
+
 def _compute_quote_total(pricing: dict, cfg: dict, quantity: int, locations: List[Dict[str,int]], chosen_tier: Optional[str]) -> Optional[Dict[str,Any]]:
     sp = pricing.get("screen_print", {})
     min_qty = int(sp.get("min_qty", 1))
@@ -961,13 +1031,38 @@ from reportlab.lib.units import inch
 from reportlab.lib.utils import ImageReader
 
 def _render_quote_pdf(tenant: str, cfg: dict, pricing: dict, payload: Dict[str, Any]) -> bytes:
+    """
+    Renders a PDF that can include:
+      - Screen print (qty + placements) section
+      - Upsell Items section (optional)
+    Totals include both parts.
+    """
     quantity = int(payload.get("quantity", 0) or 0)
     locations = payload.get("locations") or []
     tier = payload.get("tier")
 
-    result = _compute_quote_total(pricing, cfg, quantity, locations, tier)
-    if not result or "error" in result:
-        raise ValueError(result.get("error") if isinstance(result, dict) else "Unable to compute")
+    # Compute garment/print totals if applicable
+    sp_result = None
+    if quantity > 0 and isinstance(locations, list) and len(locations) > 0:
+        sp_result = _compute_quote_total(pricing, cfg, quantity, locations, tier)
+        if sp_result and "error" in sp_result:
+            # For PDF, if SP part is invalid, we still continue if upsell exists
+            sp_result = None
+
+    # Compute upsell from payload if provided
+    upsell_payload = payload.get("upsell")
+    ups = _compute_upsell_total_from_payload(cfg, upsell_payload)
+
+    # If nothing to show, bail
+    if not sp_result and not ups:
+        raise ValueError("Nothing to render (no valid placements or upsell).")
+
+    # Derived totals
+    total_sum = 0.0
+    if sp_result:
+        total_sum += float(sp_result.get("grand_total", 0.0))
+    if ups:
+        total_sum += float(ups.get("total", 0.0))
 
     buf = io.BytesIO()
     c = rl_canvas.Canvas(buf, pagesize=LETTER)
@@ -1006,39 +1101,57 @@ def _render_quote_pdf(tenant: str, cfg: dict, pricing: dict, payload: Dict[str, 
         c.drawString(x_margin, y, "Contact: " + "  •  ".join(contact_bits))
         y -= 0.3*inch
 
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(x_margin, y, f"Quantity: {result['quantity']}")
-    y -= 0.25*inch
+    # Screen print section (if any)
+    if sp_result:
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(x_margin, y, f"Quantity: {sp_result['quantity']}")
+        y -= 0.25*inch
 
-    garments = (cfg or {}).get("garments", {}) or {}
-    tier_label = None
-    if garments.get("tiers_enabled") and tier:
-        tier_label = garments.get("tiers", {}).get(tier, {}).get("label", tier.title())
-        c.setFont("Helvetica", 10)
-        c.drawString(x_margin, y, f"Garment: {tier_label}")
-        y -= 0.22*inch
+        garments = (cfg or {}).get("garments", {}) or {}
+        tier_label = None
+        if garments.get("tiers_enabled") and tier:
+            tier_label = garments.get("tiers", {}).get(tier, {}).get("label", tier.title())
+            c.setFont("Helvetica", 10)
+            c.drawString(x_margin, y, f"Garment: {tier_label}")
+            y -= 0.22*inch
 
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(x_margin, y, "Print Locations")
-    y -= 0.2*inch
-    c.setFont("Helvetica", 10)
-    for loc in result["locations"]:
-        c.drawString(x_margin, y, f"• {loc['location'].replace('_',' ').title()} — {int(loc['colors'])} color(s) @ ${loc['per_shirt_run']:.2f}/shirt")
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(x_margin, y, "Print Locations")
         y -= 0.2*inch
-    y -= 0.1*inch
+        c.setFont("Helvetica", 10)
+        for loc in sp_result["locations"]:
+            c.drawString(x_margin, y, f"• {loc['location'].replace('_',' ').title()} — {int(loc['colors'])} color(s) @ ${loc['per_shirt_run']:.2f}/shirt")
+            y -= 0.2*inch
+        y -= 0.1*inch
 
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(x_margin, y, "Pricing")
-    y -= 0.22*inch
-    c.setFont("Helvetica", 10)
-    c.drawString(x_margin, y, f"Per-shirt print: ${result['per_shirt_print']:.2f}")
-    y -= 0.18*inch
-    c.drawString(x_margin, y, f"Blank garment: ${result['blank_per_shirt']:.2f}")
-    y -= 0.18*inch
-    c.drawString(x_margin, y, f"Per-shirt total: ${result['per_shirt_out_the_door']:.2f}")
-    y -= 0.18*inch
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(x_margin, y, "Screen Print Pricing")
+        y -= 0.22*inch
+        c.setFont("Helvetica", 10)
+        c.drawString(x_margin, y, f"Per-shirt print: ${sp_result['per_shirt_print']:.2f}")
+        y -= 0.18*inch
+        c.drawString(x_margin, y, f"Blank garment: ${sp_result['blank_per_shirt']:.2f}")
+        y -= 0.18*inch
+        c.drawString(x_margin, y, f"Per-shirt total: ${sp_result['per_shirt_out_the_door']:.2f}")
+        y -= 0.28*inch
+
+    # Upsell section (if any)
+    if ups:
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(x_margin, y, "Upsell Items")
+        y -= 0.22*inch
+        c.setFont("Helvetica", 10)
+        dims = f'{ups["width_in"]:.1f}" × {ups["height_in"]:.1f}"'
+        c.drawString(x_margin, y, f'• {ups["label"]} — {dims}, Qty {ups["qty"]}')
+        y -= 0.18*inch
+        c.drawString(x_margin, y, f'  Area: {ups["area_sqft"]:.2f} sq ft  •  Rate: ${ups["rate_per_sqft"]:.2f}/sq ft')
+        y -= 0.18*inch
+        c.drawString(x_margin, y, f'  Line total: ${ups["total"]:.2f}')
+        y -= 0.28*inch
+
+    # Grand total
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(x_margin, y, f"Estimated grand total ({result['quantity']}): ${result['grand_total']:.2f}")
+    c.drawString(x_margin, y, f"Estimated grand total: ${total_sum:.2f}")
     y -= 0.32*inch
 
     c.setFont("Helvetica-Oblique", 9)
@@ -1171,7 +1284,7 @@ def ask(tenant: str):
     return resp
 
 # ================================
-# >>> QuickQuote Console API v2 (UPDATED)
+# >>> QuickQuote Console API v2 (UPDATED with Upsell)
 # ================================
 def _console_rules(cfg: dict) -> dict:
     """
@@ -1221,8 +1334,11 @@ def _normalize_console_payload_v2(payload: Dict[str, Any]) -> Tuple[int, List[Di
     """
     Body:
       {"quantity":72,"placements":[{"name":"front","colors":2}], "garment_key":"g5000",
-       "extras":{"rush":true,"fold_bag":true,"names":true,...}, "adminWaiveScreens":false}
-    Returns: (qty, locations, tier(None), garment_key)
+       "extras":{"rush":true,"fold_bag":true,...}, "adminWaiveScreens":false, "upsell": {...}}
+
+    NOTE: manual garment fields (optional) are read directly in the endpoint:
+      - manual_garment_cost: number
+      - manual_garment_label: string
     """
     qty = int(payload.get("quantity") or 0)
     raw_places = payload.get("placements") or payload.get("locations") or []
@@ -1242,58 +1358,135 @@ def _normalize_console_payload_v2(payload: Dict[str, Any]) -> Tuple[int, List[Di
 def api_quote(tenant: str):
     """
     Compute a Console quote with garments, markup, extras (per-shirt),
-    and optional one-time screen charges. Returns a response that
-    keeps backward compatibility with the existing console UI.
+    optional one-time screen charges, and optional Upsell Items.
+
+    Supports:
+      - Standard screen print flow (requires qty>0 and placements)
+      - Upsell-only flow (no garments/qty needed; uses upsell.qty/dims/rate)
+      - Mixed (both)
     """
     try:
         body = request.get_json(force=True, silent=True) or {}
         qty, locs, _tier, gkey = _normalize_console_payload_v2(body)
-        if qty <= 0 or not locs:
-            return jsonify({"error": "Missing quantity or placements."}), 400
 
         cfg = _load_json(tenant, "config")
         pricing = _load_json(tenant, "pricing")
         rules = _console_rules(cfg)
 
-        # ---- APPLY COLOR CAPS BEFORE LOOKUPS (per-placement + pricing tiers) ----
-        locs_capped, any_clamped = _apply_color_caps(cfg, pricing, qty, locs)
-        if not locs_capped:
-            return jsonify({"error": "No valid placements after applying color caps."}), 400
+        # ---- Upsell (optional; can be used alone) ----
+        upsell_in = body.get("upsell")
+        ups = _compute_upsell_total_from_payload(cfg, upsell_in)
 
-        # --- Garment (cost -> retail via markup) ---
-        gmap = rules["garments_map"]
-        if not gkey or gkey not in gmap:
-            return jsonify({"error":"Select a garment."}), 400
-        gmeta = gmap[gkey]
-        garment_cost = float(gmeta.get("cost", 0.0))
-        if garment_cost <= 0:
-            return jsonify({"error":"Invalid garment cost."}), 400
-        garment_markup_pct = rules["garment_markup_pct"]
-        garment_client = garment_cost * (1.0 + garment_markup_pct)
+        # If NO screen-print placements/qty AND NO valid upsell, error
+        if (qty <= 0 or not locs) and not ups:
+            return jsonify({"error": "Missing quantity/placements or upsell item."}), 400
 
-        # --- Print run charges (per placement, per shirt) ---
-        per_shirt_print = 0.0
+        # If we do have screen-print portion, continue the normal path:
         per_loc = []
-        for spec in locs_capped:
-            colors = int(spec["colors"])
-            run = _run_charge_per_shirt(pricing, qty, colors)
-            if run is None:
-                return jsonify({"error": "Pricing table missing for that color count."}), 400
-            per_shirt_print += float(run)
-            per_loc.append({
-                "location": spec["location"],
-                "colors": colors,
-                "per_shirt_run": round(float(run), 2)
-            })
+        per_shirt_print = 0.0
+        garment_cost = 0.0
+        garment_client = 0.0
+        garment_label = None
+        garment_mode = "preset"
+        garment_markup_pct = rules["garment_markup_pct"]
+        screen_block = None
+        screen_total = 0.0
+        colors_clamped = False
 
-        # --- Base per-shirt math ---
-        cost_per_shirt = garment_cost + per_shirt_print   # internal
-        client_per_shirt = garment_client + per_shirt_print
+        if qty > 0 and locs:
+            # ---- APPLY COLOR CAPS BEFORE LOOKUPS (per-placement + pricing tiers) ----
+            locs_capped, any_clamped = _apply_color_caps(cfg, pricing, qty, locs)
+            colors_clamped = bool(any_clamped)
+            if not locs_capped:
+                return jsonify({"error": "No valid placements after applying color caps."}), 400
 
-        cost_subtotal = cost_per_shirt * qty
-        client_subtotal_base = client_per_shirt * qty
+            # --- Determine garment (preset OR custom) ---
+            gmap = rules["garments_map"]
 
-        # --- Per-shirt extras (retail line items) ---
+            manual_cost = body.get("manual_garment_cost", None)
+            manual_label = (body.get("manual_garment_label") or "").strip() or "Custom garment"
+
+            if manual_cost is not None:
+                # Server-side sanitize and clamp
+                try:
+                    val = float(manual_cost)
+                except Exception:
+                    return jsonify({"error":"Invalid custom garment cost."}), 400
+                if val < 0:
+                    val = 0.0
+                if val > 100.0:
+                    val = 100.0
+                garment_cost = float(f"{val:.2f}")
+                garment_label = manual_label
+                garment_mode = "custom"
+            else:
+                # Require a preset key when not using custom cost
+                if not gkey or gkey not in gmap:
+                    return jsonify({"error":"Select a garment (or enter a custom garment cost)."}), 400
+                gmeta = gmap[gkey]
+                garment_cost = float(gmeta.get("cost", 0.0))
+                if garment_cost <= 0:
+                    return jsonify({"error":"Invalid garment cost."}), 400
+                garment_label = gmeta.get("label")
+
+            garment_client = garment_cost * (1.0 + garment_markup_pct)
+
+            # --- Print run charges (per placement, per shirt) ---
+            for spec in locs_capped:
+                colors = int(spec["colors"])
+                run = _run_charge_per_shirt(pricing, qty, colors)
+                if run is None:
+                    return jsonify({"error": "Pricing table missing for that color count."}), 400
+                per_shirt_print += float(run)
+                per_loc.append({
+                    "location": spec["location"],
+                    "colors": colors,
+                    "per_shirt_run": round(float(run), 2)
+                })
+
+            # --- Screen charges (one-time, not per shirt) ---
+            scfg = rules["screen"]
+            admin_waive = bool(body.get("adminWaiveScreens"))
+            if scfg["enabled"]:
+                # Count screens = sum(colors per selected placement)
+                # +1 per placement if white underbase counts and that placement has ≥1 color
+                count = 0
+                for spec in locs_capped:
+                    c = max(0, int(spec["colors"]))
+                    if c > 0:
+                        count += c
+                        if scfg["count_white_underbase"]:
+                            count += 1
+                if scfg["max_screens"] is not None:
+                    count = min(count, scfg["max_screens"])
+
+                waived_by = None
+                if admin_waive:
+                    waived_by = "admin"
+                elif scfg["waive_at_qty"] and qty >= int(scfg["waive_at_qty"]):
+                    waived_by = "qty"
+
+                price_per_screen = scfg["price_per_screen"]
+                screen_total = 0.0 if waived_by else (count * price_per_screen)
+
+                screen_block = {
+            "enabled": True,
+            "count": int(count),
+            "price_per_screen": round(price_per_screen, 2),
+            "total": round(screen_total, 2),
+            "waived": bool(waived_by),
+            "waived_by": waived_by,
+            "waive_at_qty": scfg["waive_at_qty"]
+        }
+
+        # --- Base per-shirt math (if any) ---
+        cost_per_shirt = garment_cost + per_shirt_print if (qty > 0 and locs) else 0.0
+        client_per_shirt = garment_client + per_shirt_print if (qty > 0 and locs) else 0.0
+
+        cost_subtotal = cost_per_shirt * qty if qty > 0 else 0.0
+        client_subtotal_base = client_per_shirt * qty if qty > 0 else 0.0
+
+        # --- Per-shirt extras (retail line items; only meaningful if qty>0) ---
         extras_flags = body.get("extras") or {}
         ex_prices = rules["extras_per_shirt"]
         per_shirt_selected_sum = 0.0
@@ -1301,7 +1494,7 @@ def api_quote(tenant: str):
 
         def add_per_shirt_extra(key: str):
             nonlocal per_shirt_selected_sum
-            enabled = bool(extras_flags.get(key))
+            enabled = bool(extras_flags.get(key)) if qty > 0 else False
             per = ex_prices.get(key, 0.0) if enabled else 0.0
             total = per * qty
             extras_out[f"{key}_per_shirt"] = round(per, 2)
@@ -1311,48 +1504,11 @@ def api_quote(tenant: str):
         for key in ("fold_bag", "names", "numbers", "heat_press", "tagging"):
             add_per_shirt_extra(key)
 
-        per_shirt_extras_total = per_shirt_selected_sum * qty
-
-        # --- Screen charges (one-time, not per shirt) ---
-        scfg = rules["screen"]
-        admin_waive = bool(body.get("adminWaiveScreens"))
-        screen_block = None
-        screen_total = 0.0
-
-        if scfg["enabled"]:
-            # Count screens = sum(colors per selected placement)
-            # +1 per placement if white underbase counts and that placement has ≥1 color
-            count = 0
-            for spec in locs_capped:
-                c = max(0, int(spec["colors"]))
-                if c > 0:
-                    count += c
-                    if scfg["count_white_underbase"]:
-                        count += 1
-            if scfg["max_screens"] is not None:
-                count = min(count, scfg["max_screens"])
-
-            waived_by = None
-            if admin_waive:
-                waived_by = "admin"
-            elif scfg["waive_at_qty"] and qty >= int(scfg["waive_at_qty"]):
-                waived_by = "qty"
-
-            price_per_screen = scfg["price_per_screen"]
-            screen_total = 0.0 if waived_by else (count * price_per_screen)
-
-            screen_block = {
-                "enabled": True,
-                "count": int(count),
-                "price_per_screen": round(price_per_screen, 2),
-                "total": round(screen_total, 2),
-                "waived": bool(waived_by),
-                "waived_by": waived_by,
-                "waive_at_qty": scfg["waive_at_qty"]
-            }
+        per_shirt_extras_total = per_shirt_selected_sum * qty if qty > 0 else 0.0
 
         # --- Subtotals (client) ---
-        client_subtotal = client_subtotal_base + per_shirt_extras_total + screen_total
+        upsell_total = float(ups["total"]) if ups else 0.0
+        client_subtotal = client_subtotal_base + per_shirt_extras_total + screen_total + upsell_total
 
         # --- Rush (as +% applied AFTER subtotal) ---
         rush_on = bool(extras_flags.get("rush"))
@@ -1361,25 +1517,28 @@ def api_quote(tenant: str):
         rush_amount = client_subtotal * rush_rate
 
         client_grand = client_subtotal * rush_multiplier
-        cost_grand = cost_subtotal  # extras & screens are retail-only in this v2
+        cost_grand = cost_subtotal  # extras/screens/upsell are retail-only in this v2
 
         # --- Shape response (keep your old fields; add new ones) ---
+        params_block = {
+            "garment_key": (gkey if (qty > 0 and locs and garment_mode == "preset") else None),
+            "garment_label": (garment_label if (qty > 0 and locs) else None),
+            "garment_cost": round(garment_cost, 2) if (qty > 0 and locs) else 0.0,
+            "garment_markup_pct": garment_markup_pct,
+            "rush_rate": rush_rate,
+            "rush_multiplier": rush_multiplier,
+            "colors_clamped": bool(colors_clamped),
+            "garment_mode": (garment_mode if (qty > 0 and locs) else None)
+        }
+
         out = {
             "quantity": qty,
-            "locations": per_loc,
-            "params": {
-                "garment_key": gkey,
-                "garment_label": gmeta.get("label"),
-                "garment_cost": round(garment_cost, 2),
-                "garment_markup_pct": garment_markup_pct,
-                "rush_rate": rush_rate,
-                "rush_multiplier": rush_multiplier,
-                "colors_clamped": bool(any_clamped)
-            },
+            "locations": per_loc if (qty > 0 and locs) else [],
+            "params": params_block,
             "costs": {
-                "print_per_shirt": round(per_shirt_print, 2),
-                "garment_cost_per_shirt": round(garment_cost, 2),
-                "garment_client_per_shirt": round(garment_client, 2),
+                "print_per_shirt": round(per_shirt_print, 2) if (qty > 0 and locs) else 0.0,
+                "garment_cost_per_shirt": round(garment_cost, 2) if (qty > 0 and locs) else 0.0,
+                "garment_client_per_shirt": round(garment_client, 2) if (qty > 0 and locs) else 0.0,
                 "cost_subtotal": round(cost_subtotal, 2)
             },
             "extras": {
@@ -1395,6 +1554,8 @@ def api_quote(tenant: str):
         }
         if screen_block:
             out["screen_charges"] = screen_block
+        if ups:
+            out["upsell"] = ups
 
         return jsonify(out)
 
@@ -1411,8 +1572,10 @@ def download_quote(tenant: str):
         payload = request.get_json(force=True, silent=False) or {}
         quantity = int(payload.get("quantity", 0) or 0)
         locations = payload.get("locations") or []
-        if quantity <= 0 or not isinstance(locations, list) or not locations:
-            return jsonify({"error": "Missing or invalid quote data."}), 400
+        upsell_payload = payload.get("upsell")
+
+        if (quantity <= 0 or not isinstance(locations, list) or not locations) and not upsell_payload:
+            return jsonify({"error": "Missing or invalid quote data (need placements or upsell)."}), 400
 
         cfg = _load_json(tenant, "config")
         pricing = _load_json(tenant, "pricing")
@@ -1420,7 +1583,8 @@ def download_quote(tenant: str):
 
         resp = make_response(pdf_bytes)
         resp.headers["Content-Type"] = "application/pdf"
-        fname = f"{tenant}_quote_{quantity}.pdf"
+        base_qty = quantity if quantity > 0 else (upsell_payload.get("qty") if isinstance(upsell_payload, dict) else 1)
+        fname = f"{tenant}_quote_{base_qty}.pdf"
         resp.headers["Content-Disposition"] = f'attachment; filename="{fname}"'
         return resp
     except Exception as e:
@@ -1481,6 +1645,14 @@ def e403(e):
 
 @app.errorhandler(Exception)
 def on_unhandled_error(e):
+    # In debug, let Flask show the full traceback page
+    try:
+        if app.debug:
+            raise e
+    except Exception:
+        raise
+
+    # In non-debug, keep the friendly message + logging
     try:
         logger_txt and logger_txt.info(f"EXC on {request.path}: {e}")
         logger_json and logger_json.info(_json_mod.dumps({

@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2025-09-05
+### Added
+- **Custom Garment Entry**: New input box for garment label and cost, with clear button and mode badge.
+- **Upsell Items Module**: Add-on products (Signs, Sublimation, Stickers, DTF) with width/height/qty, per-sqft pricing, and instant calculation.
+- **Upsell in Estimates**: Upsell line items now appear separately in both live console and emailed estimates.
+- **Price per Shirt Fix**: Now excludes upsell costs, showing true garment + print average.
+- **Email Estimate Enhancements**: Postmark emails now match live console breakdown, including upsell items and per-shirt pricing.
+- **Mobile/Responsive Layout**: Sidebar sticky behavior, stacked layout under 1024px, chip scrolling, and improved button spacing.
+
+### Changed
+- **Reset Behavior**: Resets all fields, including custom garment and upsell selections.
+- **Breakdown Rendering**: Prints subtotal lines for printed shirts, upsells, and grand total.
+- **Upsell Badge**: Shows the specific active upsell item instead of a generic label.
+- **Screens Tooltip**: Cleaner init and dynamic label updates.
+
+### Fixed
+- Error handling when upsell dims are incomplete.
+- Edge cases in subtotal and per-shirt calculation.
+- Minor visual polish in breakdown and console.
+
+---
+
 ## [1.0.0] - 2025-09-01
 ### Added
 - **Branding & UI**
@@ -79,7 +101,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 - Repository moved from `Bot` to `ScreenPrintBot` under Hex-Kitty org.
 - Requirements pinned; Gunicorn confirmed as entry point (`gunicorn app:app`).
 
-### Known Limitations (to be addressed soon)
+### Known Limitations
 - Email sending not yet implemented (Postmark planned).
 - Logging is minimal/ephemeral (no dashboard yet).
 

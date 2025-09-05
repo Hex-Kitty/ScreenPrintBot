@@ -141,6 +141,21 @@
         "key": "g186",
         "label": "Gildan Hoodie Zip",
         "cost": 13.39
+      },
+      {
+        "key": "st350",
+        "label": "Sport-Tek ST350",
+        "cost": 4.13
+      },
+      {
+        "key": "g2400ls",
+        "label": "Gildan 2400 L/S",
+        "cost": 6.27
+      },
+      {
+        "key": "cc1717",
+        "label": "Comfort Colors 1717",
+        "cost": 6.32
       }
     ],
     "garment_markup_pct": 0.40,
@@ -173,6 +188,47 @@
       "card_border": "#A9C6D9",
       "badge_bg": "#4C3973",
       "badge_text": "#DCEAF2"
+    },
+    "features": {
+      "allow_manual_cost": true
+    },
+    "upsell_module": {
+      "enabled": true,
+      "title": "Upsell Items",
+      "auto_include": true,
+      "standalone_ok": true,
+      "currency": "USD",
+      "ui": {
+        "inputs_appear_on_select": true,
+        "precision": 2
+      },
+      "defaults": {
+        "inch_decimals_allowed": 1,
+        "max_width_in": 300,
+        "max_height_in": 300
+      },
+      "items": [
+        {
+          "key": "signs",
+          "label": "Signs",
+          "rate_per_sqft": 1.49
+        },
+        {
+          "key": "sublimation",
+          "label": "Sublimation",
+          "rate_per_sqft": 3.99
+        },
+        {
+          "key": "stickers",
+          "label": "Stickers",
+          "rate_per_sqft": 0.03
+        },
+        {
+          "key": "dtf",
+          "label": "DTF",
+          "rate_per_sqft": 2.99
+        }
+      ]
     }
   }
 }
