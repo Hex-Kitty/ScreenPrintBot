@@ -1,7 +1,21 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file.  
 This project follows [Semantic Versioning](https://semver.org/).
+
+## [1.1.1] - 2025-09-15
+### Added
+- **FAQs Expansion**
+  - Added new common questions to the FAQ module for better customer guidance.
+  - Improved existing answers for clarity and consistency.
+  - Synced updates so shops automatically pull in the expanded FAQ set.
+
+### Fixed
+- **Mobile Totals Panel**
+  - Resolved bug where chips/buttons could scroll over the totals panel on mobile.
+  - Totals bar now stays pinned above content using z-index + sticky positioning.
+  - Added iOS-friendly fallback snippet for stubborn Safari builds.
+---
 
 ## [1.1.0] - 2025-09-05
 ### Added

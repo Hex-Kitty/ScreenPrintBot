@@ -1,7 +1,18 @@
 # ScreenPrintBot
 
 ScreenPrintBot is a Flask-based application that generates instant screen-printing quotes and branded PDF/email summaries for print shops.  
-It is now at **v1.1.0** and live at [app.screenprintbot.com](https://app.screenprintbot.com).
+It is now at **v1.1.1** and live at [app.screenprintbot.com](https://app.screenprintbot.com).
+
+---
+
+## 🆕 What’s New (v1.1.1)
+- **FAQs Expansion**
+  - Added more common questions and refined answers for better customer support.
+  - Console now pulls from the updated FAQ set automatically.
+- **Sticky Totals Fix (Mobile)**
+  - Resolved overlap issue where chips/buttons could scroll over the totals panel.
+  - Totals bar now stays pinned above content using z-index + sticky positioning.
+  - Includes an iOS-friendly fallback for Safari edge cases.
 
 ---
 
