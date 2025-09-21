@@ -1,7 +1,26 @@
 # ScreenPrintBot
 
 ScreenPrintBot is a Flask-based application that generates instant screen-printing quotes and branded PDF/email summaries for print shops.  
-It is now at **v1.1.1** and live at [app.screenprintbot.com](https://app.screenprintbot.com).
+It is now at **v1.1.2** and live at [app.screenprintbot.com](https://app.screenprintbot.com).
+
+---
+
+## 🆕 What’s New (v1.1.2)
+- **Quantity Guardrail**
+  - Limited max quantity entry to **1000** to prevent overflow or accidental extra zeros.
+- **Custom Garment Note**
+  - Added inline note beside custom garment input: *“Max price allowed is $100.”*  
+  - Prevents confusion if markup pushes numbers higher.
+- **Breakdown Clarity**
+  - Renamed *“Base Subtotal”* to *“Items Subtotal”* to avoid screen-printing jargon.  
+  - Rush fee now highlighted in **red** for visibility.  
+  - Totals reorganized: *Items Subtotal → Rush Fee → Subtotal (before tax)* grouped at the top of breakdown instead of Extras.
+- **Email Estimate Sync**
+  - HTML email output now mirrors console breakdown exactly (garments, placements, extras, upsells).  
+  - Consistent grouping/order ensures console and emails are identical.
+- **UI Polish**
+  - Fixed placement chips and number field quirks.  
+  - Minor spacing/consistency fixes across breakdown panels.
 
 ---
 

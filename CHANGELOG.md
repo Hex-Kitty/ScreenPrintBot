@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.  
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] - 2025-09-21
+### Added
+- **Custom Garment Note**
+  - Inline note beside custom garment input: *“Max price allowed is $100.”* for clarity.
+
+### Changed
+- **Breakdown Labels**
+  - Renamed *“Base Subtotal”* to *“Items Subtotal”* to avoid screen-printing jargon.
+  - Totals reorganized: *Items Subtotal → Rush Fee → Subtotal (before tax)* appear together instead of under Extras.
+  - Rush fee highlighted in **red** for better visibility.
+
+### Fixed
+- **Quantity Guardrail**
+  - Limited max garment quantity input to **1000** (was 10,000).  
+  - Prevents overflow when users accidentally enter an extra zero.
+- **Email Estimate Layout**
+  - HTML email output now mirrors console breakdown exactly (garments, placements, extras, upsells).
+  - Resolved mismatch where email and console showed different subtotal order.
+- **UI/Console Bugs**
+  - Fixed minor input quirks with placement chips and number fields.
+  - Polished spacing and consistency across breakdown display.
+
+---
+
 ## [1.1.1] - 2025-09-15
 ### Added
 - **FAQs Expansion**
