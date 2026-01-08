@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get a Quote | {{ cfg.shop_name or tenant }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    {% set theme = cfg.console.theme if cfg.console and cfg.console.theme else {} %}
+    {% set is_dark = theme.mode == 'dark' if theme.mode else false %}
+
+    <style>
+        :root {
+            /* Primary accent color */
+            --primary: {{ theme.chip_active_bg if theme.chip_active_bg else (cfg.colors.primary if cfg.colors else '#06B6D4') }};
+            --primary-hover: {{ theme.chip_hover if theme.chip_hover else '#0891B2' }};
+            
+            /* Theme colors */
+            --bg: {{ theme.bg if theme.bg else ('#0F172A' if is_dark else '#f5f7fa') }};
+            --bg-secondary: {{ theme.bg_secondary if theme.bg_secondary else ('#1E293B' if is_dark else '#ffffff') }};
+            --card-bg: {{ theme.card_bg if theme.card_bg else ('#1E293B' if is_dark else '#ffffff') }};
+            --text: {{ theme.text if theme.text else ('#FFFFFF' if is_dark else '#333333') }};
+            --text-secondary: {{ theme.text_muted if theme.text_muted else ('#94A3B8' if is_dark else '#666666') }};
+            --text-muted: {{ theme.text_muted if theme.text_muted else ('#64748B' if is_dark else '#888888') }};
+            --border: {{ theme.border if theme.border else ('#334155' if is_dark else '#e0e0e0') }};
+            --border-light: {{ theme.border_light if theme.border_light else ('#475569' if is_dark else '#f0f0f0') }};
+            
+            /* Input colors */
+            --input-bg: {{ theme.input_bg if theme.input_bg else ('#1E293B' if is_dark else '#ffffff') }};
+            --input-border: {{ theme.input_border if theme.input_border else ('#475569' if is_dark else '#e0e0e0') }};
+            --input-text: {{ theme.input_text if theme.input_text else ('#E2E8F0' if is_dark else '#333333') }};
+            --input-placeholder: {{ theme.input_placeholder if theme.input_placeholder else ('#64748B' if is_dark else '#999999') }};
+            
+            /* Card hover states */
+            --card-hover-bg: {{ '#334155' if is_dark else '#f8fbff' }};
+            --card-selected-bg: {{ '#334155' if is_dark else '#f0f7ff' }};
+            
+            /* Button colors */
+            --btn-text: {{ theme.chip_active_text if theme.chip_active_text else '#0F172A' }};
+            --btn-back-bg: {{ '#334155' if is_dark else '#f0f0f0' }};
+            --btn-back-hover: {{ '#475569' if is_dark else '#e0e0e0' }};
+            --btn-back-text: {{ '#94A3B8' if is_dark else '#666666' }};
+            
+            /* Success colors */
+            --success: #10B981;
+            --success-bg: {{ '#064E3B' if is_dark else '#D1FAE5' }};
+            
+            /* Error colors */
+            --error: #EF4444;
+            
+            /* Shadow */
+            --shadow: {{ '0 2px 20px rgba(0,0,0,0.3)' if is_dark else '0 2px 20px rgba(0,0,0,0.08)' }};
+            --shadow-lg: {{ '0 4px 30px rgba(0,0,0,0.4)' if is_dark else '0 4px 30px rgba(0,0,0,0.12)' }};
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .portal-header {
+            background: var(--bg-secondary);
+            padding: 15px 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .shop-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .shop-logo img {
+            max-height: 40px;
+            width: auto;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .start-over-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .start-over-btn:hover {
+            background: var(--btn-back-bg);
+            color: var(--text);
+        }
+
+        /* Progress Indicator */
+        .progress-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .progress-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .progress-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all 0.3s;
+        }
+
+        .progress-dot.active {
+            background: var(--primary);
+            transform: scale(1.2);
+        }
+
+        .progress-dot.completed {
+            background: var(--primary);
+        }
+
+        /* Main Container */
+        .portal-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 330px;
+        }
+
+        /* Wizard Steps */
+        .wizard-step {
+            display: none;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .wizard-step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .wizard-step h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .wizard-step .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+            font-size: 15px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .form-group input[type="number"],
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="tel"],
+        .form-group textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--input-border);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            background: var(--input-bg);
+            color: var(--input-text);
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--input-placeholder);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-group .error {
+            border-color: var(--error);
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Quick Select Buttons */
+        .quick-select {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .quick-select button {
+            padding: 10px 18px;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-select button:hover {
+            background: var(--primary);
+            color: var(--btn-text);
+        }
+
+        /* Radio Cards */
+        .radio-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .radio-card {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--card-bg);
+        }
+
+        .radio-card:hover {
+            border-color: var(--primary);
+            background: var(--card-hover-bg);
+        }
+
+        .radio-card.selected {
+            border-color: var(--primary);
+            background: var(--card-selected-bg);
+        }
+
+        .radio-card input[type="radio"] {
+            display: none;
+        }
+
+        .radio-card .radio-circle {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            margin-right: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .radio-card.selected .radio-circle {
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+        .radio-card.selected .radio-circle::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--btn-text);
+            border-radius: 50%;
+        }
+
+        .radio-card .radio-label {
+            flex: 1;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .radio-card .radio-price {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Location Checkboxes */
+        .location-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .location-card {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            transition: all 0.2s;
+            background: var(--card-bg);
+        }
+
+        .location-card.selected {
+            border-color: var(--primary);
+            background: var(--card-selected-bg);
+        }
+
+        .location-card label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            flex: 1;
+            color: var(--text);
+        }
+
+        .location-card input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .location-card select {
+            padding: 10px 14px;
+            border: 2px solid var(--input-border);
+            border-radius: 6px;
+            font-size: 15px;
+            background: var(--input-bg);
+            color: var(--input-text);
+            cursor: pointer;
+            min-width: 120px;
+        }
+
+        .location-card select:disabled {
+            background: var(--btn-back-bg);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* Extras Checkboxes */
+        .extras-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .extra-card {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--card-bg);
+        }
+
+        .extra-card:hover {
+            border-color: var(--border-light);
+        }
+
+        .extra-card.selected {
+            border-color: var(--primary);
+            background: var(--card-selected-bg);
+        }
+
+        .extra-card input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+            flex-shrink: 0;
+            accent-color: var(--primary);
+        }
+
+        .extra-card .extra-info {
+            flex: 1;
+        }
+
+        .extra-card .extra-name {
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .extra-card .extra-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .extra-card .extra-price {
+            font-weight: 600;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        /* Notes Textarea */
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-back {
+            background: var(--btn-back-bg);
+            color: var(--btn-back-text);
+            flex: 0 0 auto;
+        }
+
+        .btn-back:hover {
+            background: var(--btn-back-hover);
+        }
+
+        .btn-next {
+            background: var(--primary);
+            color: var(--btn-text);
+            flex: 1;
+        }
+
+        .btn-next:hover {
+            opacity: 0.9;
+        }
+
+        .btn-next:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        .btn-submit {
+            background: var(--success);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-submit:hover {
+            opacity: 0.9;
+        }
+
+        .btn-submit:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        /* Quote Summary (Step 4) */
+        .quote-summary-box {
+            background: var(--bg);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border);
+        }
+
+        .quote-summary-box h3 {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 15px;
+            color: var(--text);
+        }
+
+        .summary-line.detail {
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding-left: 15px;
+        }
+
+        .summary-line.total {
+            border-top: 2px solid var(--border);
+            margin-top: 10px;
+            padding-top: 15px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .summary-line .per-item {
+            font-size: 14px;
+            font-weight: normal;
+            color: var(--text-secondary);
+        }
+
+        /* Sticky Quote Footer */
+        .quote-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-top: 3px solid var(--primary);
+            padding: 15px 20px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+        }
+
+        .quote-footer.visible {
+            display: block;
+        }
+
+        .quote-footer-inner {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .quote-footer h4 {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .quote-footer .toggle-details {
+            font-size: 12px;
+            color: var(--primary);
+            cursor: pointer;
+            display: none;
+        }
+
+        .quote-footer-details {
+            margin-bottom: 10px;
+        }
+
+        .quote-footer-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            padding: 3px 0;
+            color: var(--text-secondary);
+        }
+
+        .quote-footer-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .quote-footer-total .amount {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .quote-footer-total .per-item {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 600px) {
+            .portal-container {
+                padding: 15px;
+                padding-bottom: 160px;
+            }
+
+            .wizard-step {
+                padding: 20px;
+            }
+
+            .wizard-step h2 {
+                font-size: 20px;
+            }
+
+            .quick-select button {
+                padding: 8px 14px;
+                font-size: 14px;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            .btn-back {
+                order: 2;
+            }
+
+            .quote-footer {
+                padding: 12px 15px;
+            }
+
+            .quote-footer.collapsed .quote-footer-details {
+                display: none;
+            }
+
+            .quote-footer .toggle-details {
+                display: inline;
+            }
+
+            .start-over-btn span {
+                display: none;
+            }
+        }
+
+        /* Success Page */
+        .success-page {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+
+        .success-page h2 {
+            color: var(--success);
+            margin-bottom: 10px;
+        }
+
+        .success-page p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .success-email {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* Loading Spinner */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: {{ 'rgba(15,23,42,0.9)' if is_dark else 'rgba(255,255,255,0.9)' }};
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .loading-overlay.visible {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Privacy note */
+        .privacy-note {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="portal-header">
+        <div class="shop-logo">
+            {% if cfg.logo_path %}
+                <img src="{{ cfg.logo_path }}" alt="{{ cfg.shop_name or tenant }}">
+            {% else %}
+                {{ cfg.shop_name or tenant }}
+            {% endif %}
+        </div>
+        <div class="header-right">
+            <button class="start-over-btn" onclick="startOver()" title="Start Over">
+                ↺ <span>Start Over</span>
+            </button>
+            <div class="progress-indicator">
+                <span class="step-label">Step <span id="current-step">1</span> of 4</span>
+                <div class="progress-dots">
+                    <div class="progress-dot active" data-step="1"></div>
+                    <div class="progress-dot" data-step="2"></div>
+                    <div class="progress-dot" data-step="3"></div>
+                    <div class="progress-dot" data-step="4"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="portal-container">
+        <!-- Step 1: Quantity & Garment -->
+        <div class="wizard-step active" data-step="1">
+            <h2>What are you printing?</h2>
+            <p class="subtitle">Tell us about your order</p>
+
+            <div class="form-group">
+                <label for="quantity">How many items?</label>
+                <input type="number" id="quantity" name="quantity" min="48" max="10000" placeholder="Enter quantity (minimum 48)">
+                <div class="quick-select">
+                    <button type="button" onclick="setQuantity(48)">48</button>
+                    <button type="button" onclick="setQuantity(72)">72</button>
+                    <button type="button" onclick="setQuantity(100)">100</button>
+                    <button type="button" onclick="setQuantity(150)">150</button>
+                    <button type="button" onclick="setQuantity(250)">250</button>
+                </div>
+                <div class="error-message" id="quantity-error">Minimum 48 for screen printing. Need fewer? Ask us about DTF transfers!</div>
+            </div>
+
+            <div class="form-group">
+                <label>What type of item?</label>
+                <div class="radio-cards" id="category-list">
+                    <!-- Populated by JavaScript -->
+                </div>
+                <div class="error-message" id="category-error">Please select a garment type</div>
+            </div>
+
+            <!-- Garment selection (shows after category selected) -->
+            <div class="form-group" id="garment-selection" style="display: none;">
+                <label>Select your garment</label>
+                <div class="radio-cards" id="garment-list">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <button type="button" class="btn btn-next" onclick="nextStep()" id="btn-step1">Next →</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Print Locations -->
+        <div class="wizard-step" data-step="2">
+            <h2>Where should we print?</h2>
+            <p class="subtitle">Select one or more locations</p>
+
+            <div class="location-cards" id="location-list">
+                <div class="location-card" data-location="front">
+                    <label>
+                        <input type="checkbox" name="location" value="front" onchange="toggleLocation(this)">
+                        <span>Front</span>
+                    </label>
+                    <select disabled onchange="updateLocationsData(); updateQuote()">
+                        <option value="">Colors</option>
+                        <option value="1">1 color</option>
+                        <option value="2">2 colors</option>
+                        <option value="3">3 colors</option>
+                        <option value="4">4 colors</option>
+                        <option value="5">5 colors</option>
+                        <option value="6">6 colors</option>
+                    </select>
+                </div>
+                <div class="location-card" data-location="back">
+                    <label>
+                        <input type="checkbox" name="location" value="back" onchange="toggleLocation(this)">
+                        <span>Back</span>
+                    </label>
+                    <select disabled onchange="updateLocationsData(); updateQuote()">
+                        <option value="">Colors</option>
+                        <option value="1">1 color</option>
+                        <option value="2">2 colors</option>
+                        <option value="3">3 colors</option>
+                        <option value="4">4 colors</option>
+                        <option value="5">5 colors</option>
+                        <option value="6">6 colors</option>
+                    </select>
+                </div>
+                <div class="location-card" data-location="left_sleeve">
+                    <label>
+                        <input type="checkbox" name="location" value="left_sleeve" onchange="toggleLocation(this)">
+                        <span>Left Sleeve</span>
+                    </label>
+                    <select disabled onchange="updateLocationsData(); updateQuote()">
+                        <option value="">Colors</option>
+                        <option value="1">1 color</option>
+                        <option value="2">2 colors</option>
+                        <option value="3">3 colors</option>
+                    </select>
+                </div>
+                <div class="location-card" data-location="right_sleeve">
+                    <label>
+                        <input type="checkbox" name="location" value="right_sleeve" onchange="toggleLocation(this)">
+                        <span>Right Sleeve</span>
+                    </label>
+                    <select disabled onchange="updateLocationsData(); updateQuote()">
+                        <option value="">Colors</option>
+                        <option value="1">1 color</option>
+                        <option value="2">2 colors</option>
+                        <option value="3">3 colors</option>
+                    </select>
+                </div>
+            </div>
+            <div class="error-message" id="location-error">Please select at least one print location</div>
+
+            <div class="nav-buttons">
+                <button type="button" class="btn btn-back" onclick="prevStep()">← Back</button>
+                <button type="button" class="btn btn-next" onclick="nextStep()">Next →</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Extras -->
+        <div class="wizard-step" data-step="3">
+            <h2>Any special requests?</h2>
+            <p class="subtitle">All optional - skip if you don't need these</p>
+
+            <div class="extras-list">
+                <div class="extra-card" onclick="toggleExtra(this, event)">
+                    <input type="checkbox" name="extra" value="fold_bag" onchange="handleExtraChange(this)">
+                    <div class="extra-info">
+                        <div class="extra-name">Fold & Bag</div>
+                        <div class="extra-desc">Individual poly bagging</div>
+                    </div>
+                    <div class="extra-price" id="fold-bag-price">+$1.25/ea</div>
+                </div>
+                <div class="extra-card" onclick="toggleExtra(this, event)">
+                    <input type="checkbox" name="extra" value="tagging" onchange="handleExtraChange(this)">
+                    <div class="extra-info">
+                        <div class="extra-name">Tagging</div>
+                        <div class="extra-desc">Custom tags or relabeling</div>
+                    </div>
+                    <div class="extra-price" id="tagging-price">+$0.50/ea</div>
+                </div>
+                <div class="extra-card" onclick="toggleExtra(this, event)">
+                    <input type="checkbox" name="extra" value="names" onchange="handleExtraChange(this)">
+                    <div class="extra-info">
+                        <div class="extra-name">Individual Names</div>
+                        <div class="extra-desc">Different name on each item</div>
+                    </div>
+                    <div class="extra-price" id="names-price">+$2.00/ea</div>
+                </div>
+                <div class="extra-card" onclick="toggleExtra(this, event)">
+                    <input type="checkbox" name="extra" value="numbers" onchange="handleExtraChange(this)">
+                    <div class="extra-info">
+                        <div class="extra-name">Individual Numbers</div>
+                        <div class="extra-desc">Different number on each item</div>
+                    </div>
+                    <div class="extra-price" id="numbers-price">+$2.00/ea</div>
+                </div>
+                <div class="extra-card" onclick="toggleExtra(this, event)">
+                    <input type="checkbox" name="extra" value="rush" onchange="handleExtraChange(this)">
+                    <div class="extra-info">
+                        <div class="extra-name">Rush Order</div>
+                        <div class="extra-desc">Need it fast? 2-3 day turnaround</div>
+                    </div>
+                    <div class="extra-price">+50%</div>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 25px;">
+                <label for="notes">Anything else we should know? (optional)</label>
+                <textarea id="notes" name="notes" placeholder="Special instructions, artwork details, deadline, etc."></textarea>
+            </div>
+
+            <div class="nav-buttons">
+                <button type="button" class="btn btn-back" onclick="prevStep()">← Back</button>
+                <button type="button" class="btn btn-next" onclick="nextStep()">Next →</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Review & Contact -->
+        <div class="wizard-step" data-step="4">
+            <h2>Review & Get Your Quote</h2>
+            <p class="subtitle">Confirm your details and we'll send your quote</p>
+
+            <!-- Quote Summary -->
+            <div class="quote-summary-box">
+                <h3>Your Quote Summary</h3>
+                <div id="summary-content">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Contact Form -->
+            <div class="form-group">
+                <label for="customer_name">Your Name *</label>
+                <input type="text" id="customer_name" name="customer_name" required placeholder="John Smith">
+                <div class="error-message" id="name-error">Please enter your name</div>
+            </div>
+
+            <div class="form-group">
+                <label for="customer_email">Email Address *</label>
+                <input type="email" id="customer_email" name="customer_email" required placeholder="you@company.com">
+                <div class="error-message" id="email-error">Please enter a valid email</div>
+            </div>
+
+            <div class="form-group">
+                <label for="customer_phone">Phone Number (optional)</label>
+                <input type="tel" id="customer_phone" name="customer_phone" placeholder="(555) 123-4567">
+            </div>
+
+            <div class="form-group">
+                <label for="company_name">Company/Organization (optional)</label>
+                <input type="text" id="company_name" name="company_name" placeholder="Acme Inc.">
+            </div>
+
+            <p class="privacy-note">
+                🔒 Your information is private and secure. We'll only use it to send your quote.
+            </p>
+
+            <div class="nav-buttons">
+                <button type="button" class="btn btn-back" onclick="prevStep()">← Back</button>
+                <button type="button" class="btn btn-submit" onclick="submitQuote()" id="btn-submit">Send My Quote →</button>
+            </div>
+        </div>
+
+        <!-- Success Page -->
+        <div class="wizard-step" data-step="success">
+            <div class="success-page">
+                <div class="success-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <h2>Quote Sent!</h2>
+                <p>Thanks <span id="success-name"></span>!</p>
+                <p>Your custom quote has been sent to:<br><span class="success-email" id="success-email"></span></p>
+                
+                <div class="quote-summary-box" style="text-align: left; margin-top: 30px;">
+                    <h3>Quote Summary</h3>
+                    <div id="success-summary"></div>
+                </div>
+
+                <p style="margin-top: 20px;">{{ cfg.shop_name or tenant }} will review your request and get back to you within 24 hours.</p>
+                
+                {% if cfg.customer_portal and cfg.customer_portal.contact_phone %}
+                <p style="margin-top: 15px;">Questions? Call <a href="tel:{{ cfg.customer_portal.contact_phone }}" style="color: var(--primary);">{{ cfg.customer_portal.contact_phone }}</a></p>
+                {% endif %}
+
+                <button class="btn btn-next" style="margin-top: 25px;" onclick="location.reload()">Get Another Quote</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Sticky Quote Footer -->
+    <div class="quote-footer" id="quote-footer">
+        <div class="quote-footer-inner">
+            <h4>
+                Your Estimate
+                <span class="toggle-details" onclick="toggleFooterDetails()">Show details</span>
+            </h4>
+            <div class="quote-footer-details" id="footer-details">
+                <!-- Populated by JavaScript -->
+            </div>
+            <div class="quote-footer-total">
+                <span class="per-item"><span id="footer-qty">0</span> items @ <span id="footer-per-item">$0.00</span>/ea</span>
+                <span class="amount" id="footer-total">$0.00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        // ===========================================
+        // CONFIGURATION (loaded from server)
+        // ===========================================
+        const CONFIG = {{ portal_config | tojson | safe }};
+        const TENANT = "{{ tenant }}";
+
+        // ===========================================
+        // STATE
+        // ===========================================
+        let currentStep = 1;
+        let formData = {
+            quantity: null,
+            category: null,
+            garment: null,
+            garmentPrice: 0,
+            garmentLabel: '',
+            locations: [],
+            extras: {
+                rush: false,
+                names: false,
+                numbers: false,
+                fold_bag: false,
+                tagging: false
+            },
+            notes: '',
+            customer: {
+                name: '',
+                email: '',
+                phone: '',
+                company: ''
+            }
+        };
+
+        // ===========================================
+        // INITIALIZATION
+        // ===========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            initCategories();
+            initExtras();
+            setupQuantityInput();
+        });
+
+        function initCategories() {
+            const container = document.getElementById('category-list');
+            const categories = (CONFIG.garments && CONFIG.garments.categories) || [];
+            
+            categories.forEach(cat => {
+                const card = document.createElement('div');
+                card.className = 'radio-card';
+                card.onclick = () => selectCategory(cat.key);
+                card.innerHTML = `
+                    <input type="radio" name="category" value="${cat.key}">
+                    <div class="radio-circle"></div>
+                    <span class="radio-label">${cat.label}</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function initExtras() {
+            const extras = CONFIG.extras || {};
+            if (extras.fold_bag_per_item) {
+                document.getElementById('fold-bag-price').textContent = `+$${extras.fold_bag_per_item.toFixed(2)}/ea`;
+            }
+            if (extras.tagging_per_item) {
+                document.getElementById('tagging-price').textContent = `+$${extras.tagging_per_item.toFixed(2)}/ea`;
+            }
+            if (extras.names_per_item) {
+                document.getElementById('names-price').textContent = `+$${extras.names_per_item.toFixed(2)}/ea`;
+            }
+            if (extras.numbers_per_item) {
+                document.getElementById('numbers-price').textContent = `+$${extras.numbers_per_item.toFixed(2)}/ea`;
+            }
+        }
+
+        function setupQuantityInput() {
+            const input = document.getElementById('quantity');
+            input.addEventListener('input', function() {
+                formData.quantity = parseInt(this.value) || null;
+                updateQuote();
+            });
+        }
+
+        // ===========================================
+        // QUANTITY
+        // ===========================================
+        function setQuantity(qty) {
+            document.getElementById('quantity').value = qty;
+            formData.quantity = qty;
+            updateQuote();
+        }
+
+        // ===========================================
+        // CATEGORIES & GARMENTS
+        // ===========================================
+        function selectCategory(key) {
+            formData.category = key;
+            
+            // Update UI
+            document.querySelectorAll('#category-list .radio-card').forEach(card => {
+                card.classList.remove('selected');
+                if (card.querySelector(`input[value="${key}"]`)) {
+                    card.classList.add('selected');
+                }
+            });
+
+            // Show garment selection
+            showGarments(key);
+        }
+
+        function showGarments(categoryKey) {
+            const container = document.getElementById('garment-list');
+            const section = document.getElementById('garment-selection');
+            const categories = (CONFIG.garments && CONFIG.garments.categories) || [];
+            const category = categories.find(c => c.key === categoryKey);
+            
+            if (!category || !category.items) {
+                section.style.display = 'none';
+                return;
+            }
+
+            container.innerHTML = '';
+            category.items.forEach(g => {
+                const card = document.createElement('div');
+                card.className = 'radio-card';
+                card.onclick = () => selectGarment(g);
+                card.innerHTML = `
+                    <input type="radio" name="garment" value="${g.key}">
+                    <div class="radio-circle"></div>
+                    <span class="radio-label">${g.label}</span>
+                    <span class="radio-price">$${g.price.toFixed(2)}/ea</span>
+                `;
+                container.appendChild(card);
+            });
+
+            section.style.display = 'block';
+        }
+
+        function selectGarment(garment) {
+            formData.garment = garment.key;
+            formData.garmentPrice = garment.price;
+            formData.garmentLabel = garment.label;
+
+            document.querySelectorAll('#garment-list .radio-card').forEach(card => {
+                card.classList.remove('selected');
+                if (card.querySelector(`input[value="${garment.key}"]`)) {
+                    card.classList.add('selected');
+                }
+            });
+
+            updateQuote();
+        }
+
+        // ===========================================
+        // LOCATIONS
+        // ===========================================
+        function toggleLocation(checkbox) {
+            const card = checkbox.closest('.location-card');
+            const select = card.querySelector('select');
+            
+            if (checkbox.checked) {
+                card.classList.add('selected');
+                select.disabled = false;
+                select.value = '1';
+            } else {
+                card.classList.remove('selected');
+                select.disabled = true;
+                select.value = '';
+            }
+            
+            updateLocationsData();
+            updateQuote();
+        }
+
+        function updateLocationsData() {
+            const locations = [];
+            document.querySelectorAll('.location-card').forEach(card => {
+                const checkbox = card.querySelector('input[type="checkbox"]');
+                const select = card.querySelector('select');
+                if (checkbox.checked && select.value) {
+                    locations.push({
+                        location: card.dataset.location,
+                        colors: parseInt(select.value)
+                    });
+                }
+            });
+            formData.locations = locations;
+        }
+
+        // ===========================================
+        // EXTRAS
+        // ===========================================
+        function toggleExtra(card, event) {
+            // Prevent double-toggle when clicking checkbox directly
+            if (event.target.type === 'checkbox') return;
+            
+            const checkbox = card.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            handleExtraChange(checkbox);
+        }
+
+        function handleExtraChange(checkbox) {
+            const card = checkbox.closest('.extra-card');
+            const value = checkbox.value;
+            
+            if (checkbox.checked) {
+                card.classList.add('selected');
+                formData.extras[value] = true;
+            } else {
+                card.classList.remove('selected');
+                formData.extras[value] = false;
+            }
+            
+            updateQuote();
+        }
+
+        // ===========================================
+        // QUOTE CALCULATION
+        // ===========================================
+        function calculateQuote() {
+            if (!formData.quantity || !formData.garment) return null;
+
+            const qty = formData.quantity;
+            const garmentTotal = qty * formData.garmentPrice;
+
+            // Calculate print cost per location
+            let printTotal = 0;
+            const locationDetails = formData.locations.map(loc => {
+                const colors = loc.colors;
+                const rate = 0.50 + (colors - 1) * 0.25;
+                const locTotal = qty * rate;
+                printTotal += locTotal;
+                return {
+                    name: loc.location.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    colors: colors,
+                    rate: rate,
+                    total: locTotal
+                };
+            });
+
+            // Calculate extras
+            const extras = [];
+            const extrasConfig = CONFIG.extras || {};
+
+            if (formData.extras.fold_bag) {
+                const amt = qty * (extrasConfig.fold_bag_per_item || 1.25);
+                extras.push({ name: 'Fold & Bag', amount: amt });
+            }
+            if (formData.extras.tagging) {
+                const amt = qty * (extrasConfig.tagging_per_item || 0.50);
+                extras.push({ name: 'Tagging', amount: amt });
+            }
+            if (formData.extras.names) {
+                const amt = qty * (extrasConfig.names_per_item || 2.00);
+                extras.push({ name: 'Individual Names', amount: amt });
+            }
+            if (formData.extras.numbers) {
+                const amt = qty * (extrasConfig.numbers_per_item || 2.00);
+                extras.push({ name: 'Individual Numbers', amount: amt });
+            }
+
+            let subtotal = garmentTotal + printTotal + extras.reduce((sum, e) => sum + e.amount, 0);
+
+            // Rush is applied last
+            if (formData.extras.rush) {
+                const rushAmt = subtotal * 0.5;
+                extras.push({ name: 'Rush Order', amount: rushAmt, isRush: true });
+                subtotal += rushAmt;
+            }
+
+            return {
+                quantity: qty,
+                garmentLabel: formData.garmentLabel,
+                garmentPrice: formData.garmentPrice,
+                garmentTotal: garmentTotal,
+                locations: locationDetails,
+                printTotal: printTotal,
+                extras: extras,
+                total: subtotal,
+                perItem: subtotal / qty
+            };
+        }
+
+        function updateQuote() {
+            const quote = calculateQuote();
+            if (!quote) {
+                document.getElementById('quote-footer').classList.remove('visible');
+                return;
+            }
+
+            document.getElementById('quote-footer').classList.add('visible');
+
+            // Build details
+            let detailsHtml = [];
+            detailsHtml.push(`<div class="quote-footer-line"><span>${quote.garmentLabel}</span><span>$${quote.garmentTotal.toFixed(2)}</span></div>`);
+            
+            if (quote.printTotal > 0) {
+                detailsHtml.push(`<div class="quote-footer-line"><span>Printing</span><span>$${quote.printTotal.toFixed(2)}</span></div>`);
+            }
+
+            quote.extras.forEach(extra => {
+                const label = extra.isRush ? 'Rush (+50%)' : extra.name;
+                detailsHtml.push(`<div class="quote-footer-line"><span>${label}</span><span>$${extra.amount.toFixed(2)}</span></div>`);
+            });
+
+            document.getElementById('footer-details').innerHTML = detailsHtml.join('');
+            document.getElementById('footer-qty').textContent = quote.quantity;
+            document.getElementById('footer-per-item').textContent = '$' + quote.perItem.toFixed(2);
+            document.getElementById('footer-total').textContent = '$' + quote.total.toFixed(2);
+        }
+
+        function toggleFooterDetails() {
+            const footer = document.getElementById('quote-footer');
+            footer.classList.toggle('collapsed');
+            const toggle = footer.querySelector('.toggle-details');
+            toggle.textContent = footer.classList.contains('collapsed') ? 'Show details' : 'Hide details';
+        }
+
+        // ===========================================
+        // STEP 4 SUMMARY
+        // ===========================================
+        function renderSummary() {
+            const quote = calculateQuote();
+            if (!quote) return;
+
+            const container = document.getElementById('summary-content');
+            let html = [];
+
+            html.push(`<div class="summary-line"><span>${quote.quantity} × ${quote.garmentLabel}</span><span>$${quote.garmentTotal.toFixed(2)}</span></div>`);
+            
+            // Each location on its own line
+            if (quote.locations.length > 0) {
+                html.push(`<div class="summary-line"><span>Screen Printing</span><span>$${quote.printTotal.toFixed(2)}</span></div>`);
+                quote.locations.forEach(loc => {
+                    html.push(`<div class="summary-line detail"><span>${loc.name}: ${loc.colors} color${loc.colors > 1 ? 's' : ''}</span><span></span></div>`);
+                });
+            }
+
+            quote.extras.forEach(extra => {
+                const label = extra.isRush ? 'Rush Order (+50%)' : extra.name;
+                html.push(`<div class="summary-line"><span>${label}</span><span>$${extra.amount.toFixed(2)}</span></div>`);
+            });
+
+            html.push(`<div class="summary-line total"><span>TOTAL</span><span>$${quote.total.toFixed(2)} <span class="per-item">($${quote.perItem.toFixed(2)}/ea)</span></span></div>`);
+
+            container.innerHTML = html.join('');
+
+            // Also update success page summary
+            document.getElementById('success-summary').innerHTML = html.join('');
+        }
+
+        // ===========================================
+        // NAVIGATION
+        // ===========================================
+        function nextStep() {
+            if (!validateStep(currentStep)) return;
+
+            if (currentStep === 3) {
+                formData.notes = document.getElementById('notes').value;
+            }
+
+            if (currentStep === 4) {
+                return; // Handle via submitQuote()
+            }
+
+            currentStep++;
+            showStep(currentStep);
+
+            if (currentStep === 4) {
+                renderSummary();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        }
+
+        function showStep(step) {
+            document.querySelectorAll('.wizard-step').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelector(`.wizard-step[data-step="${step}"]`).classList.add('active');
+
+            // Update progress dots
+            document.querySelectorAll('.progress-dot').forEach(dot => {
+                const dotStep = parseInt(dot.dataset.step);
+                dot.classList.remove('active', 'completed');
+                if (dotStep === step) {
+                    dot.classList.add('active');
+                } else if (dotStep < step) {
+                    dot.classList.add('completed');
+                }
+            });
+
+            document.getElementById('current-step').textContent = step;
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showSuccess() {
+            document.querySelectorAll('.wizard-step').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelector('.wizard-step[data-step="success"]').classList.add('active');
+            document.getElementById('quote-footer').classList.remove('visible');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function startOver() {
+            location.reload();
+        }
+
+        // ===========================================
+        // VALIDATION
+        // ===========================================
+        function validateStep(step) {
+            hideAllErrors();
+
+            if (step === 1) {
+                let valid = true;
+
+                if (!formData.quantity || formData.quantity < 48) {
+                    showError('quantity-error');
+                    document.getElementById('quantity').classList.add('error');
+                    valid = false;
+                }
+
+                if (!formData.garment) {
+                    showError('category-error');
+                    valid = false;
+                }
+
+                return valid;
+            }
+
+            if (step === 2) {
+                updateLocationsData();
+                if (formData.locations.length === 0) {
+                    showError('location-error');
+                    return false;
+                }
+                return true;
+            }
+
+            if (step === 3) {
+                return true; // All optional
+            }
+
+            return true;
+        }
+
+        function validateContactForm() {
+            hideAllErrors();
+            let valid = true;
+
+            const name = document.getElementById('customer_name').value.trim();
+            const email = document.getElementById('customer_email').value.trim();
+
+            if (!name || name.length < 2) {
+                showError('name-error');
+                document.getElementById('customer_name').classList.add('error');
+                valid = false;
+            }
+
+            if (!email || !isValidEmail(email)) {
+                showError('email-error');
+                document.getElementById('customer_email').classList.add('error');
+                valid = false;
+            }
+
+            return valid;
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function showError(id) {
+            document.getElementById(id).classList.add('show');
+        }
+
+        function hideAllErrors() {
+            document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
+            document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+        }
+
+        // ===========================================
+        // SUBMIT QUOTE
+        // ===========================================
+        async function submitQuote() {
+            if (!validateContactForm()) return;
+
+            // Gather contact info
+            formData.customer = {
+                name: document.getElementById('customer_name').value.trim(),
+                email: document.getElementById('customer_email').value.trim(),
+                phone: document.getElementById('customer_phone').value.trim(),
+                company: document.getElementById('company_name').value.trim()
+            };
+
+            // Build payload
+            const quote = calculateQuote();
+            const payload = {
+                quantity: formData.quantity,
+                garment_key: formData.garment,
+                garment_label: formData.garmentLabel,
+                garment_price: formData.garmentPrice,
+                locations: formData.locations,
+                extras: formData.extras,
+                notes: formData.notes,
+                customer: formData.customer,
+                calculated_total: quote.total,
+                calculated_per_item: quote.perItem
+            };
+
+            // Show loading
+            document.getElementById('loading-overlay').classList.add('visible');
+            document.getElementById('btn-submit').disabled = true;
+
+            try {
+                const response = await fetch(`/api/customer-quote/${TENANT}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.ok) {
+                    // Show success
+                    document.getElementById('success-name').textContent = formData.customer.name.split(' ')[0];
+                    document.getElementById('success-email').textContent = formData.customer.email;
+                    showSuccess();
+                } else {
+                    alert('Error: ' + (result.error || 'Something went wrong. Please try again.'));
+                }
+            } catch (err) {
+                console.error('Submit error:', err);
+                alert('Connection error. Please check your internet and try again.');
+            } finally {
+                document.getElementById('loading-overlay').classList.remove('visible');
+                document.getElementById('btn-submit').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

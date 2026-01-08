@@ -3,113 +3,354 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Choose a Bot</title>
+  <title>ScreenPrintBot - Live Demos</title>
 
   <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    /* ===== Brand palette (ScreenPrintBot) ===== */
-    :root{
-      --spb-eggplant:#4C3973;  /* deep purple */
-      --spb-steel:#A9C6D9;     /* light desaturated blue */
-      --spb-ice:#DCEAF2;       /* very light blue */
-      --spb-teal:#1B98A6;      /* primary */
-      --spb-ink:#0D0D0D;       /* text / near-black */
+    /* ===== Brand palette (ScreenPrintBot Brand Book) ===== */
+    :root {
+      --spb-navy: #0F172A;
+      --spb-blue: #3B82F6;
+      --spb-cyan: #06B6D4;
+      --spb-purple: #7C3AED;
+      --spb-white: #FFFFFF;
+      --spb-muted: #94A3B8;
+      --spb-light: #E2E8F0;
+
+      /* Gradients */
+      --gradient-text: linear-gradient(135deg, #3B82F6 0%, #06B6D4 50%, #3B82F6 100%);
+      --gradient-bg: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
 
       /* UI tokens */
-      --bg:#f6f7f8;            /* page background */
-      --card:#ffffff;
-      --muted:#6b7280;
-      --radius:14px;
-      --shadow:0 10px 30px rgba(0,0,0,.08);
-      --hairline:#e9edf0;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.15);
 
       /* Buttons */
-      --btn-fill:var(--spb-teal);
-      --btn-fill-hover:#178896;
-      --btn-outline:var(--spb-teal);
-      --btn-outline-hover:#e8f6f8; /* faint fill on hover */
-      --ring: color-mix(in oklab, var(--spb-teal) 28%, transparent);
+      --btn-primary-bg: #06B6D4;
+      --btn-primary-hover: #0891B2;
+      --btn-secondary-bg: #1E293B;
+      --btn-secondary-hover: #334155;
+      --btn-secondary-border: #334155;
     }
 
-    *{box-sizing:border-box}
-    body{
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", Helvetica, "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
-      margin:0; padding:24px;
-      text-align:center;
-      background:var(--bg); color:var(--spb-ink);
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--gradient-bg);
+      color: var(--spb-white);
+      min-height: 100vh;
+      line-height: 1.5;
     }
-    h1{margin:8px 0 14px; font-weight:800; letter-spacing:.2px;}
-    .muted{color:var(--muted)}
+
+    /* ===== Header ===== */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--spb-white);
+    }
+
+    .logo img {
+      height: 36px;
+      width: auto;
+    }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--btn-primary-bg);
+      color: var(--spb-navy);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-cta:hover {
+      background: var(--btn-primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.3);
+    }
 
     /* ===== Hero ===== */
-    .hero{
-      max-width:1100px; margin:0 auto 28px; text-align:left;
-      background:var(--card); border-radius:16px; box-shadow:var(--shadow);
-      border:1px solid var(--hairline); padding:18px 20px;
-      display:flex; align-items:center; justify-content:space-between; gap:14px;
+    .hero {
+      text-align: center;
+      padding: 60px 24px 40px;
+      max-width: 900px;
+      margin: 0 auto;
     }
-    .hero h2{margin:0 0 6px; font-size:20px}
 
-    /* CTA (hero) uses primary solid */
-    .cta{
-      display:inline-flex; align-items:center; gap:10px;
-      background:var(--btn-fill); color:#fff; border:1px solid var(--btn-fill);
-      padding:10px 16px; border-radius:999px; font-weight:700; cursor:pointer;
-      text-decoration:none; box-shadow:0 1px 0 rgba(0,0,0,.05);
-      transition:background .16s ease, border-color .16s ease, box-shadow .16s ease, transform .06s ease;
+    .badge {
+      display: inline-block;
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      color: var(--spb-cyan);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
     }
-    .cta:hover{background:var(--btn-fill-hover); border-color:var(--btn-fill-hover)}
-    .cta:active{transform:translateY(1px)}
 
-    /* ===== Grid of tenants ===== */
-    .tenant-list{
-      max-width:1100px; margin:0 auto;
-      display:flex; flex-wrap:wrap; justify-content:center; gap:24px;
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 56px);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      background: var(--gradient-text);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
-    .tenant-card{
-      background:#fff; padding:18px; border-radius:16px; box-shadow:var(--shadow);
-      width:320px; text-align:center; color:inherit; text-decoration:none;
-      transition:transform .18s ease, box-shadow .18s ease; border:1px solid var(--hairline);
-    }
-    .tenant-card:hover{ transform: translateY(-3px); box-shadow:0 16px 38px rgba(0,0,0,.10); }
 
-    /* Logo clamp */
-    .logo-wrap{
-      width:100%; height:90px; display:flex; align-items:center; justify-content:center;
-      overflow:hidden; margin-bottom:12px;
+    .hero p {
+      font-size: 18px;
+      color: var(--spb-muted);
+      max-width: 600px;
+      margin: 0 auto 32px;
+      line-height: 1.6;
     }
-    .logo-wrap img{
-      max-width:100%; max-height:90px; width:auto; height:auto; object-fit:contain; display:block;
-    }
-    .tenant-card h2{ font-size:1.1rem; margin:2px 0 10px; font-weight:800;}
 
-    /* ===== Buttons (per-card) ===== */
-    .btn-row{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
 
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      border-radius:999px; cursor:pointer; text-decoration:none;
-      font-size:14px; line-height:1; font-weight:600;
-      padding:10px 16px; transition:all .16s ease; user-select:none;
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
     }
-    /* Primary = solid teal */
-    .btn.primary{
-      background:var(--btn-fill); color:#fff; border:1px solid var(--btn-fill);
-      box-shadow:0 1px 0 rgba(0,0,0,.04);
-    }
-    .btn.primary:hover{ background:var(--btn-fill-hover); border-color:var(--btn-fill-hover); }
-    .btn.primary:active{ transform: translateY(1px); }
 
-    /* Secondary = outlined teal */
-    .btn.outline{
-      background:#fff; color:var(--btn-outline); border:1px solid var(--btn-outline);
+    .btn-primary {
+      background: var(--btn-primary-bg);
+      color: var(--spb-navy);
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.4);
     }
-    .btn.outline:hover{
-      background:var(--btn-outline-hover);
-      box-shadow:0 0 0 3px var(--ring);
+
+    .btn-primary:hover {
+      background: var(--btn-primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(6, 182, 212, 0.4);
     }
-    .btn.outline:active{ transform: translateY(1px); }
+
+    .btn-secondary {
+      background: var(--btn-secondary-bg);
+      color: var(--spb-white);
+      border: 1px solid var(--btn-secondary-border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--btn-secondary-hover);
+      transform: translateY(-2px);
+    }
+
+    /* ===== Section Title ===== */
+    .section-title {
+      text-align: center;
+      padding: 40px 24px 32px;
+    }
+
+    .section-title h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--spb-white);
+      margin-bottom: 8px;
+    }
+
+    .section-title p {
+      color: var(--spb-muted);
+      font-size: 16px;
+    }
+
+    /* ===== Demo Cards Grid ===== */
+    .demo-grid {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .demo-card {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .demo-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(6, 182, 212, 0.3);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .demo-card .logo-wrap {
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .demo-card .logo-wrap img {
+      max-height: 70px;
+      max-width: 200px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .demo-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--spb-white);
+      margin-bottom: 16px;
+    }
+
+    .demo-card .btn-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .demo-card .btn-card {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .demo-card .btn-card.primary {
+      background: var(--btn-primary-bg);
+      color: var(--spb-navy);
+    }
+
+    .demo-card .btn-card.primary:hover {
+      background: var(--btn-primary-hover);
+    }
+
+    .demo-card .btn-card.outline {
+      background: transparent;
+      color: var(--spb-cyan);
+      border: 1px solid var(--spb-cyan);
+    }
+
+    .demo-card .btn-card.outline:hover {
+      background: rgba(6, 182, 212, 0.1);
+    }
+
+    .demo-card .btn-card.secondary {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--spb-blue);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .demo-card .btn-card.secondary:hover {
+      background: rgba(59, 130, 246, 0.25);
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+      color: var(--spb-muted);
+      font-size: 14px;
+    }
+
+    .footer a {
+      color: var(--spb-cyan);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 640px) {
+      .header {
+        padding: 16px 20px;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .hero {
+        padding: 40px 20px 32px;
+      }
+
+      .hero h1 {
+        font-size: 32px;
+      }
+
+      .hero p {
+        font-size: 16px;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .demo-grid {
+        grid-template-columns: 1fr;
+        padding: 0 20px 40px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -117,38 +358,64 @@
       (tenants | selectattr('id','equalto','demo') | list | first)
       or (tenants[0] if tenants else None) %}
 
-  <div class="hero">
-    <div>
-      <h2>QuickQuote Console</h2>
-      <div class="muted">Price garments & prints in seconds — per-placement ink charges, garment markup, rush & extras.</div>
-    </div>
-    <div>
-      {% if default_console %}
-        <a class="cta" href="{{ url_for('console_ui', tenant=default_console.id) }}">Try the QuickQuote Console →</a>
-      {% else %}
-        <span class="muted">No shops configured</span>
-      {% endif %}
-    </div>
-  </div>
+  <!-- Header -->
+  <header class="header">
+    <a class="logo" href="https://screenprintbot.com">
+      <img src="{{ url_for('static', filename='logos/demo.png') }}" alt="ScreenPrintBot">
+      <span class="logo-text">ScreenPrintBot</span>
+    </a>
+    {% if default_console %}
+      <a class="header-cta" href="{{ url_for('console_ui', tenant=default_console.id) }}">
+        Try QuickQuote →
+      </a>
+    {% endif %}
+  </header>
 
-  <h1>Select a Demo</h1>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="badge">AI-Powered Tools for Screen Print Shops</div>
+    <h1>Stop Wasting Time on Quotes, Questions & Chaos.</h1>
+    <p>QuickQuote, Chatbot, Press Planner, and EmbroideryBot. Simple tools. Real solutions. Built by someone who's stood next to the press for 14 years.</p>
+    <div class="hero-buttons">
+      <a class="btn btn-primary" href="#demos">Try Live Demos</a>
+      <a class="btn btn-secondary" href="https://screenprintbot.com/pricing">See Pricing</a>
+    </div>
+  </section>
 
-  <div class="tenant-list">
-    {% for tenant in tenants %}
-      <div class="tenant-card">
-        <div class="logo-wrap">
-          <img src="{{ tenant.logo }}" alt="{{ tenant.name }} logo"
-               onerror="this.src='/static/logos/default.png'">
+  <!-- Demo Section -->
+  <section id="demos">
+    <div class="section-title">
+      <h2>Select a Demo</h2>
+      <p>Try our tools with sample configurations</p>
+    </div>
+
+    <div class="demo-grid">
+      {% for tenant in tenants %}
+        <div class="demo-card">
+          <div class="logo-wrap">
+            <img src="{{ tenant.logo }}" alt="{{ tenant.name }} logo"
+                 onerror="this.src='/static/logos/default.png'">
+          </div>
+          <h3>{{ tenant.name }}</h3>
+          <div class="btn-row">
+            <a class="btn-card primary" href="{{ url_for('console_ui', tenant=tenant.id) }}">
+              QuickQuote Console
+            </a>
+            <a class="btn-card outline" href="{{ url_for('customer_portal', tenant=tenant.id) }}">
+              Customer Portal
+            </a>
+            <a class="btn-card secondary" href="{{ url_for('bot_ui', tenant=tenant.id) }}">
+              Open Chatbot
+            </a>
+          </div>
         </div>
-        <h2>{{ tenant.name }}</h2>
-        <div class="btn-row">
-          <!-- Secondary (outlined) -->
-          <a class="btn outline" href="{{ url_for('bot_ui', tenant=tenant.id) }}">Open Chatbot</a>
-          <!-- Primary (solid) -->
-          <a class="btn primary" href="{{ url_for('console_ui', tenant=tenant.id) }}">QuickQuote Console</a>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 ScreenPrintBot · <a href="https://screenprintbot.com">screenprintbot.com</a> · Built for screen printers, by the industry.</p>
+  </footer>
 </body>
 </html>

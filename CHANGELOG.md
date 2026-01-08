@@ -3,14 +3,79 @@
 All notable changes to this project will be documented in this file.  
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-01-07
+### Added
+- **Environment Variable Validation**
+  - App now validates required env vars (`POSTMARK_TOKEN`, `FROM_EMAIL`) at startup.
+  - Clear error messages if vars are missing instead of cryptic crashes later.
+  - Uses `python-dotenv` for local development (`.env` file support).
+
+- **Session Cleanup (Memory Leak Fix)**
+  - Sessions now have timestamps and expire after 1 hour.
+  - Automatic cleanup runs on every chatbot/console request.
+  - Prevents unbounded memory growth in production.
+
+- **Input Validation**
+  - Quantity: 1–100,000 range enforced.
+  - Colors: 1–12 range enforced per placement.
+  - Email: Format validation before sending.
+  - Garment cost: $0–$100 range for custom entries.
+  - All validation returns consistent JSON error responses.
+
+- **Calculation Logging**
+  - Every console quote now logs full calculation breakdown to `logs/chat.jsonl`.
+  - Includes garment, print, extras, screens, upsell, and totals.
+  - Makes debugging pricing issues much easier.
+
+- **Path Traversal Protection (Security)**
+  - Tenant IDs now validated (alphanumeric + underscore + hyphen only).
+  - Prevents `../../etc/passwd` style attacks on config loading.
+  - Resolved paths verified to stay within `clients/` directory.
+
+- **HTTP Timeout on External Calls**
+  - Postmark API calls now timeout after 30 seconds.
+  - Returns proper 503/504 errors instead of hanging forever.
+
+### Changed
+- **Standardized API Responses**
+  - All errors now return `{"ok": false, "error": "..."}` format.
+  - All successes now return `{"ok": true, ...}` format.
+  - Consistent across all endpoints.
+
+- **Default Debug Mode**
+  - Changed default `FLASK_DEBUG` from `1` to `0` (secure by default).
+  - Must explicitly enable debug mode for development.
+
+- **Code Organization**
+  - Added docstrings to all major functions.
+  - Organized into logical sections with clear headers.
+  - Improved type hints throughout.
+
+### Fixed
+- **Logging Typo**
+  - Fixed `role.UPPER()` → `role.upper()` in log formatting.
+
+- **404 Error Handler**
+  - Now returns JSON `{"ok": false, "error": "Not found"}` instead of HTML.
+
+- **Curly Quote Syntax Error**
+  - Fixed fancy quotes in string literal that caused Python syntax error.
+
+### Security
+- Tenant validation prevents directory traversal attacks.
+- JSON file loading restricted to known filenames (`faq`, `pricing`, `config`).
+- Resolved paths verified against `clients/` directory boundary.
+
+---
+
 ## [1.1.2] - 2025-09-21
 ### Added
 - **Custom Garment Note**
-  - Inline note beside custom garment input: *“Max price allowed is $100.”* for clarity.
+  - Inline note beside custom garment input: *"Max price allowed is $100."* for clarity.
 
 ### Changed
 - **Breakdown Labels**
-  - Renamed *“Base Subtotal”* to *“Items Subtotal”* to avoid screen-printing jargon.
+  - Renamed *"Base Subtotal"* to *"Items Subtotal"* to avoid screen-printing jargon.
   - Totals reorganized: *Items Subtotal → Rush Fee → Subtotal (before tax)* appear together instead of under Extras.
   - Rush fee highlighted in **red** for better visibility.
 
@@ -39,6 +104,7 @@ This project follows [Semantic Versioning](https://semver.org/).
   - Resolved bug where chips/buttons could scroll over the totals panel on mobile.
   - Totals bar now stays pinned above content using z-index + sticky positioning.
   - Added iOS-friendly fallback snippet for stubborn Safari builds.
+
 ---
 
 ## [1.1.0] - 2025-09-05
@@ -68,7 +134,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 - **Branding & UI**
   - New ScreenPrintBot brand (logo + palette).
   - Neutral theme for multi-tenant consoles (works with any shop brand).
-  - “Demo / v1.0” badges and layout polish.
+  - "Demo / v1.0" badges and layout polish.
   - Mobile safety rail: content locked to right column on small screens.
 
 - **Email**
@@ -97,14 +163,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 ## [0.3.0-beta] - 2025-08-29
 ### Added
 - **Sidebar Breakdown Upgrade**: Garment, Ink/Print, and Extras now itemized with customer-facing pricing and per-placement details.
-- **Dynamic Color Buttons**: Placement color counts now driven by config (`max_colors_per_placement`) with clean 1–10 layout (no more “6+”).
+- **Dynamic Color Buttons**: Placement color counts now driven by config (`max_colors_per_placement`) with clean 1–10 layout (no more "6+").
 - **Per-Shop Minimum Quantities**: Configurable screen-print minimums per shop (e.g., 12 vs 48). If quantity is below min, console suggests DTF instead of quoting.
 - **UI Polish**: Gray backgrounds on cards, clearer spacing, per-placement labels, and Beta 0.3 badge for tracking updates.
 
 ### Changed
 - Fixed quoting math to align with pricing.json (e.g., 100 shirts: 1c = $1.68, 2c = $2.53).
 - Refined breakdown to show garment markup price instead of shop cost.
-- “Compute” button relabeled to **Quick Quote** for clarity.
+- "Compute" button relabeled to **Quick Quote** for clarity.
 
 ### Known Limitations
 - Email sending not yet implemented (Postmark integration planned).
@@ -146,5 +212,6 @@ This project follows [Semantic Versioning](https://semver.org/).
 ---
 
 ## [Unreleased]
-- Persistent per-shop logging and simple export.
-- README/Docs expansion and screenshots.
+- Customer-facing quote portal (Phase 2).
+- Rate limiting on email endpoints.
+- Redis session storage for multi-instance scaling.

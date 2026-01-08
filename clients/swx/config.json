@@ -1,11 +1,15 @@
 {
+  "shop_name": "Sportswear Express",
+  "customer_portal": {
+    "notification_email": "mike@sportswearexpress.com"
+  },
   "brand_name": "Sportswear Express",
   "logo_path": "/static/logos/swx.png",
 
   "colors": {
-    "primary": "#0D9488",
+    "primary": "#EF4444",
     "secondary": "#111827",
-    "accent": "#F97316",
+    "accent": "#EF4444",
     "bg": "#FFFFFF",
     "text": "#111827"
   },
@@ -18,7 +22,7 @@
   "ui": {
     "intro_lines": [
       "Ask me about pricing or general questions.",
-      "Type a request like: “72 tees, front 2c, back 1c.”",
+      "Type a request like: \"72 tees, front 2c, back 1c.\"",
       "Or just tap the quick buttons below."
     ],
     "show_brand_text": false,
@@ -60,7 +64,7 @@
 
   "buttons": {
     "bg": "#EF4444",
-    "hover": "#B91C1C",
+    "hover": "#DC2626",
     "text": "#FFFFFF"
   },
 
@@ -118,6 +122,15 @@
       "back": 10,
       "left_sleeve": 10,
       "right_sleeve": 10
+    },
+
+    "theme": {
+      "mode": "light",
+      "chip_active_bg": "#EF4444",
+      "chip_active_text": "#FFFFFF",
+      "badge_bg": "#FEE2E2",
+      "badge_text": "#991B1B",
+      "badge_border": "#FECACA"
     }
   }
 }

@@ -1,23 +1,27 @@
 {
+  "shop_name": "Screen Print Bot Demo",
   "brand_name": "Screen Print Bot Demo",
   "logo_path": "/static/logos/demo.png",
+  "customer_portal": {
+    "notification_email": "quote@screenprintbot.com"
+  },
   "colors": {
-    "primary": "#4C3973",
-    "secondary": "#0D0D0D",
-    "accent": "#1B98A6",
+    "primary": "#3B82F6",
+    "secondary": "#0F172A",
+    "accent": "#06B6D4",
     "bg": "#FFFFFF",
-    "text": "#0D0D0D",
-    "muted": "#A9C6D9",
-    "soft": "#DCEAF2"
+    "text": "#0F172A",
+    "muted": "#94A3B8",
+    "soft": "#E2E8F0"
   },
   "fonts": {
-    "heading": "Montserrat, sans-serif",
+    "heading": "Inter, system-ui, sans-serif",
     "body": "Inter, system-ui, sans-serif"
   },
   "ui": {
     "intro_lines": [
       "Ask me about pricing or general questions.",
-      "Type a request like: “72 tees, front 2c, back 1c.”",
+      "Type a request like: \"72 tees, front 2c, back 1c.\"",
       "Or just tap the quick buttons below."
     ],
     "show_brand_text": false,
@@ -42,7 +46,7 @@
       "cta_get": "Get DTF Quote",
       "cta_alt": "Change Quantity"
     },
-    "radius": "16px",
+    "radius": "12px",
     "shadow": "0 10px 30px rgba(0,0,0,.08)",
     "quote_cta": {
       "show": true,
@@ -51,9 +55,9 @@
     }
   },
   "buttons": {
-    "bg": "#1B98A6",
-    "hover": "#157D86",
-    "text": "#FFFFFF"
+    "bg": "#06B6D4",
+    "hover": "#0891B2",
+    "text": "#0F172A"
   },
   "garments": {
     "tiers_enabled": true,
@@ -182,12 +186,30 @@
       "right_sleeve": 10
     },
     "theme": {
-      "chip_active_bg": "#1B98A6",
-      "chip_active_text": "#FFFFFF",
-      "chip_border": "#A9C6D9",
-      "card_border": "#A9C6D9",
-      "badge_bg": "#4C3973",
-      "badge_text": "#DCEAF2"
+      "mode": "dark",
+      "bg": "#0F172A",
+      "bg_secondary": "#1E293B",
+      "card_bg": "#1E293B",
+      "text": "#FFFFFF",
+      "text_muted": "#94A3B8",
+      "border": "#334155",
+      "chip_bg": "#334155",
+      "chip_border": "#475569",
+      "chip_text": "#E2E8F0",
+      "chip_hover": "#475569",
+      "chip_active_bg": "#06B6D4",
+      "chip_active_text": "#0F172A",
+      "card_border": "#334155",
+      "badge_bg": "#334155",
+      "badge_text": "#94A3B8",
+      "badge_border": "#475569",
+      "input_bg": "#1E293B",
+      "input_border": "#475569",
+      "input_text": "#E2E8F0",
+      "input_placeholder": "#64748B",
+      "price_bg": "#0F172A",
+      "price_border": "#334155",
+      "breakdown_header_bg": "#334155"
     },
     "features": {
       "allow_manual_cost": true
