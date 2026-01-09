@@ -791,19 +791,33 @@
                 <div class="error-message" id="quantity-error">Minimum 48 for screen printing. Need fewer? Ask us about DTF transfers!</div>
             </div>
 
+            <!-- Supply Own Garment Toggle -->
             <div class="form-group">
-                <label>What type of item?</label>
-                <div class="radio-cards" id="category-list">
-                    <!-- Populated by JavaScript -->
+                <div class="extra-card" id="supply-own-toggle" onclick="toggleSupplyOwn()">
+                    <input type="checkbox" id="supply-own-checkbox" onchange="handleSupplyOwnChange(this)">
+                    <div class="extra-info">
+                        <div class="extra-name">I'm supplying my own garments</div>
+                        <div class="extra-desc">Skip garment selection - print only pricing</div>
+                    </div>
                 </div>
-                <div class="error-message" id="category-error">Please select a garment type</div>
             </div>
 
-            <!-- Garment selection (shows after category selected) -->
-            <div class="form-group" id="garment-selection" style="display: none;">
-                <label>Select your garment</label>
-                <div class="radio-cards" id="garment-list">
-                    <!-- Populated by JavaScript -->
+            <!-- Garment Selection Section (hidden when supplying own) -->
+            <div id="garment-section">
+                <div class="form-group">
+                    <label>What type of item?</label>
+                    <div class="radio-cards" id="category-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="error-message" id="category-error">Please select a garment type</div>
+                </div>
+
+                <!-- Garment selection (shows after category selected) -->
+                <div class="form-group" id="garment-selection" style="display: none;">
+                    <label>Select your garment</label>
+                    <div class="radio-cards" id="garment-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
                 </div>
             </div>
 
@@ -818,60 +832,7 @@
             <p class="subtitle">Select one or more locations</p>
 
             <div class="location-cards" id="location-list">
-                <div class="location-card" data-location="front">
-                    <label>
-                        <input type="checkbox" name="location" value="front" onchange="toggleLocation(this)">
-                        <span>Front</span>
-                    </label>
-                    <select disabled onchange="updateLocationsData(); updateQuote()">
-                        <option value="">Colors</option>
-                        <option value="1">1 color</option>
-                        <option value="2">2 colors</option>
-                        <option value="3">3 colors</option>
-                        <option value="4">4 colors</option>
-                        <option value="5">5 colors</option>
-                        <option value="6">6 colors</option>
-                    </select>
-                </div>
-                <div class="location-card" data-location="back">
-                    <label>
-                        <input type="checkbox" name="location" value="back" onchange="toggleLocation(this)">
-                        <span>Back</span>
-                    </label>
-                    <select disabled onchange="updateLocationsData(); updateQuote()">
-                        <option value="">Colors</option>
-                        <option value="1">1 color</option>
-                        <option value="2">2 colors</option>
-                        <option value="3">3 colors</option>
-                        <option value="4">4 colors</option>
-                        <option value="5">5 colors</option>
-                        <option value="6">6 colors</option>
-                    </select>
-                </div>
-                <div class="location-card" data-location="left_sleeve">
-                    <label>
-                        <input type="checkbox" name="location" value="left_sleeve" onchange="toggleLocation(this)">
-                        <span>Left Sleeve</span>
-                    </label>
-                    <select disabled onchange="updateLocationsData(); updateQuote()">
-                        <option value="">Colors</option>
-                        <option value="1">1 color</option>
-                        <option value="2">2 colors</option>
-                        <option value="3">3 colors</option>
-                    </select>
-                </div>
-                <div class="location-card" data-location="right_sleeve">
-                    <label>
-                        <input type="checkbox" name="location" value="right_sleeve" onchange="toggleLocation(this)">
-                        <span>Right Sleeve</span>
-                    </label>
-                    <select disabled onchange="updateLocationsData(); updateQuote()">
-                        <option value="">Colors</option>
-                        <option value="1">1 color</option>
-                        <option value="2">2 colors</option>
-                        <option value="3">3 colors</option>
-                    </select>
-                </div>
+                <!-- Populated by JavaScript based on config -->
             </div>
             <div class="error-message" id="location-error">Please select at least one print location</div>
 
@@ -1049,6 +1010,7 @@
         let currentStep = 1;
         let formData = {
             quantity: null,
+            supplyOwn: false,
             category: null,
             garment: null,
             garmentPrice: 0,
@@ -1075,6 +1037,7 @@
         // ===========================================
         document.addEventListener('DOMContentLoaded', function() {
             initCategories();
+            initLocations();
             initExtras();
             setupQuantityInput();
         });
@@ -1094,6 +1057,76 @@
                 `;
                 container.appendChild(card);
             });
+        }
+
+        function initLocations() {
+            const container = document.getElementById('location-list');
+            // Check both possible CONFIG paths for max colors
+            const maxColors = CONFIG.max_colors_per_placement || 
+                             (CONFIG.console && CONFIG.console.max_colors_per_placement) || 
+                             { front: 6, back: 6, left_sleeve: 3, right_sleeve: 3 };
+            const placements = [
+                { key: 'front', label: 'Front' },
+                { key: 'back', label: 'Back' },
+                { key: 'left_sleeve', label: 'Left Sleeve' },
+                { key: 'right_sleeve', label: 'Right Sleeve' }
+            ];
+
+            placements.forEach(place => {
+                const max = maxColors[place.key] || 6;
+                let options = '<option value="">Colors</option>';
+                for (let i = 1; i <= max; i++) {
+                    options += `<option value="${i}">${i} color${i > 1 ? 's' : ''}</option>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'location-card';
+                card.dataset.location = place.key;
+                card.innerHTML = `
+                    <label>
+                        <input type="checkbox" name="location" value="${place.key}" onchange="toggleLocation(this)">
+                        <span>${place.label}</span>
+                    </label>
+                    <select disabled onchange="updateLocationsData(); updateQuote()">
+                        ${options}
+                    </select>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // ===========================================
+        // SUPPLY OWN GARMENT
+        // ===========================================
+        function toggleSupplyOwn() {
+            const checkbox = document.getElementById('supply-own-checkbox');
+            checkbox.checked = !checkbox.checked;
+            handleSupplyOwnChange(checkbox);
+        }
+
+        function handleSupplyOwnChange(checkbox) {
+            const toggle = document.getElementById('supply-own-toggle');
+            const garmentSection = document.getElementById('garment-section');
+            
+            formData.supplyOwn = checkbox.checked;
+            
+            if (checkbox.checked) {
+                toggle.classList.add('selected');
+                garmentSection.style.display = 'none';
+                // Set garment to "customer supplied"
+                formData.garment = 'customer_supplied';
+                formData.garmentPrice = 0;
+                formData.garmentLabel = 'Customer Supplied';
+            } else {
+                toggle.classList.remove('selected');
+                garmentSection.style.display = 'block';
+                // Reset garment selection
+                formData.garment = null;
+                formData.garmentPrice = 0;
+                formData.garmentLabel = '';
+            }
+            
+            updateQuote();
         }
 
         function initExtras() {
@@ -1256,17 +1289,46 @@
         // ===========================================
         // QUOTE CALCULATION
         // ===========================================
+        
+        // Get quantity tier key (e.g., "48-71", "72-143", etc.)
+        function getQtyTier(qty) {
+            if (qty >= 5000) return "5000+";
+            if (qty >= 2500) return "2500-4999";
+            if (qty >= 1000) return "1000-2499";
+            if (qty >= 576) return "576-999";
+            if (qty >= 288) return "288-575";
+            if (qty >= 144) return "144-287";
+            if (qty >= 72) return "72-143";
+            return "48-71";
+        }
+
+        // Get print rate from pricing tiers
+        function getPrintRate(colors, qty) {
+            const tiers = (CONFIG.printing && CONFIG.printing.tiers) || {};
+            const colorKey = `${colors}_color`;
+            const qtyTier = getQtyTier(qty);
+            
+            if (tiers[colorKey] && tiers[colorKey][qtyTier] !== undefined) {
+                return tiers[colorKey][qtyTier];
+            }
+            
+            // Fallback if no pricing found
+            console.warn(`No pricing found for ${colors} colors at qty ${qty}`);
+            return 0.50 + (colors - 1) * 0.25;
+        }
+
         function calculateQuote() {
-            if (!formData.quantity || !formData.garment) return null;
+            // Allow quote if supply own OR garment selected
+            if (!formData.quantity || (!formData.garment && !formData.supplyOwn)) return null;
 
             const qty = formData.quantity;
             const garmentTotal = qty * formData.garmentPrice;
 
-            // Calculate print cost per location
+            // Calculate print cost per location using real pricing
             let printTotal = 0;
             const locationDetails = formData.locations.map(loc => {
                 const colors = loc.colors;
-                const rate = 0.50 + (colors - 1) * 0.25;
+                const rate = getPrintRate(colors, qty);
                 const locTotal = qty * rate;
                 printTotal += locTotal;
                 return {
@@ -1309,7 +1371,7 @@
 
             return {
                 quantity: qty,
-                garmentLabel: formData.garmentLabel,
+                garmentLabel: formData.garmentLabel || 'Customer Supplied',
                 garmentPrice: formData.garmentPrice,
                 garmentTotal: garmentTotal,
                 locations: locationDetails,
@@ -1331,7 +1393,13 @@
 
             // Build details
             let detailsHtml = [];
-            detailsHtml.push(`<div class="quote-footer-line"><span>${quote.garmentLabel}</span><span>$${quote.garmentTotal.toFixed(2)}</span></div>`);
+            
+            // Show garment line or print only
+            if (formData.supplyOwn) {
+                detailsHtml.push(`<div class="quote-footer-line"><span>Print Only (Customer Supplied)</span><span>—</span></div>`);
+            } else {
+                detailsHtml.push(`<div class="quote-footer-line"><span>${quote.garmentLabel}</span><span>$${quote.garmentTotal.toFixed(2)}</span></div>`);
+            }
             
             if (quote.printTotal > 0) {
                 detailsHtml.push(`<div class="quote-footer-line"><span>Printing</span><span>$${quote.printTotal.toFixed(2)}</span></div>`);
@@ -1368,7 +1436,12 @@
             const container = document.getElementById('summary-content');
             let html = [];
 
-            html.push(`<div class="summary-line"><span>${quote.quantity} × ${quote.garmentLabel}</span><span>$${quote.garmentTotal.toFixed(2)}</span></div>`);
+            // Show garment line (or customer supplied)
+            if (formData.supplyOwn) {
+                html.push(`<div class="summary-line"><span>${quote.quantity} items (Customer Supplied)</span><span>—</span></div>`);
+            } else {
+                html.push(`<div class="summary-line"><span>${quote.quantity} × ${quote.garmentLabel}</span><span>$${quote.garmentTotal.toFixed(2)}</span></div>`);
+            }
             
             // Each location on its own line
             if (quote.locations.length > 0) {
@@ -1471,7 +1544,8 @@
                     valid = false;
                 }
 
-                if (!formData.garment) {
+                // Only require garment selection if NOT supplying own
+                if (!formData.supplyOwn && !formData.garment) {
                     showError('category-error');
                     valid = false;
                 }

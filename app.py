@@ -2485,11 +2485,19 @@ def _get_portal_config(cfg: dict, pricing: dict) -> dict:
         "fold_bag_per_item": float(extras_cfg.get("fold_bag_per_shirt", 1.25)),
         "tagging_per_item": float(extras_cfg.get("tagging_per_shirt", 0.50))
     }
+
+    max_colors = console_cfg.get("max_colors_per_placement", {
+    "front": 6,
+    "back": 6,
+    "left_sleeve": 3,
+    "right_sleeve": 3
+})
     
     return {
         "garments": garments,
         "printing": printing,
-        "extras": extras
+        "extras": extras,
+        "max_colors_per_placement": max_colors
     }
 
 

@@ -118,10 +118,10 @@
     "show_admin_controls": true,
 
     "max_colors_per_placement": {
-      "front": 10,
-      "back": 10,
-      "left_sleeve": 10,
-      "right_sleeve": 10
+      "front": 12,
+      "back": 12,
+      "left_sleeve": 4,
+      "right_sleeve": 4
     },
 
     "theme": {
