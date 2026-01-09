@@ -794,7 +794,7 @@
             <!-- Supply Own Garment Toggle -->
             <div class="form-group">
                 <div class="extra-card" id="supply-own-toggle" onclick="toggleSupplyOwn()">
-                    <input type="checkbox" id="supply-own-checkbox" onchange="handleSupplyOwnChange(this)">
+                    <input type="checkbox" id="supply-own-checkbox" onchange="handleSupplyOwnChange(this)" onclick="event.stopPropagation()">
                     <div class="extra-info">
                         <div class="extra-name">I'm supplying my own garments</div>
                         <div class="extra-desc">Skip garment selection - print only pricing</div>
