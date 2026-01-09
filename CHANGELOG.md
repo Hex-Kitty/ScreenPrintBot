@@ -3,6 +3,60 @@
 All notable changes to this project will be documented in this file.  
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-01-09
+### Added
+- **Customer Portal (Phase 2)**
+  - New customer-facing quote wizard at `/quote/{tenant}`.
+  - 4-step flow: Quantity → Garment → Print Locations → Contact Info.
+  - Real-time running total with sticky footer.
+  - Mobile-responsive design with dark/light theme support.
+
+- **Supply-Own-Garments Option**
+  - Customers can skip garment selection for print-only quotes.
+  - Toggle checkbox in Step 1 hides garment section when checked.
+  - Properly handles $0 garment pricing in calculations.
+
+- **2026 Pricing Update**
+  - Updated print pricing tiers to 2026 rates.
+  - Added 11-color and 12-color tiers (previously maxed at 10).
+  - All 8 quantity brackets updated: 48-71, 72-143, 144-287, 288-575, 576-999, 1000-2499, 2500-4999, 5000+.
+
+- **Dynamic Max Colors Per Placement**
+  - Portal reads `max_colors_per_placement` from tenant config.
+  - Each tenant can set different limits (e.g., SWX: 12/12/4/4, Demo: 6/6/3/3).
+  - Fallback defaults if not configured.
+
+- **Per-Tenant Theming**
+  - Portal supports dark/light mode per tenant.
+  - SWX: Light theme with red accents (#EF4444).
+  - Demo: Dark theme with cyan accents (#06B6D4).
+  - 20+ CSS variables for full theme customization.
+
+- **Customer Quote Emails**
+  - Automatic email to customer with quote summary.
+  - Shop notification email with full details + reply-to customer.
+  - Uses existing Postmark integration.
+
+### Changed
+- **Portal Config Helper**
+  - `_get_portal_config()` now includes `max_colors_per_placement`.
+  - Extras pricing read from tenant's `console.extras` config.
+  - Garment catalog supports categories with nested items.
+
+- **Location Breakdown Display**
+  - Step 4 summary now shows individual location prices.
+  - Sticky footer shows location-by-location breakdown.
+
+### Fixed
+- **Checkbox Click Bug**
+  - Supply-own-garments checkbox now responds to direct clicks.
+  - Added `event.stopPropagation()` to prevent double-toggle.
+
+- **Config Path Resolution**
+  - Portal correctly reads from `CONFIG.max_colors_per_placement` with fallback.
+
+---
+
 ## [1.2.0] - 2026-01-07
 ### Added
 - **Environment Variable Validation**
@@ -212,6 +266,6 @@ This project follows [Semantic Versioning](https://semver.org/).
 ---
 
 ## [Unreleased]
-- Customer-facing quote portal (Phase 2).
 - Rate limiting on email endpoints.
 - Redis session storage for multi-instance scaling.
+- Admin dashboard for quote history and analytics.

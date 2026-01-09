@@ -1,7 +1,29 @@
 # ScreenPrintBot
 
 ScreenPrintBot is a Flask-based application that generates instant screen-printing quotes and branded PDF/email summaries for print shops.  
-It is now at **v1.2.0** and live at [app.screenprintbot.com](https://app.screenprintbot.com).
+It is now at **v1.3.0** and live at [app.screenprintbot.com](https://app.screenprintbot.com).
+
+---
+
+## 🆕 What's New (v1.3.0) — Customer Portal Release
+
+### Customer-Facing Quote Portal
+- **Self-Service Quotes**: Customers can generate their own quotes 24/7 at `/quote/{tenant}`.
+- **4-Step Wizard**: Quantity → Garment → Print Locations → Contact Info.
+- **Real-Time Pricing**: Running total updates as customers make selections.
+- **Supply-Own-Garments**: Toggle for print-only quotes when customer provides garments.
+- **Automatic Emails**: Quote confirmation sent to customer + notification to shop.
+
+### 2026 Pricing & 12-Color Support
+- Updated all print pricing tiers to 2026 rates.
+- Added 11-color and 12-color tiers (previously maxed at 10).
+- Dynamic color limits per tenant (e.g., SWX: 12/12/4/4, Demo: 6/6/3/3).
+
+### Per-Tenant Theming
+- Portal supports dark/light mode per tenant.
+- SWX: Light theme with red accents.
+- Demo: Dark theme with cyan accents.
+- 20+ CSS variables for full customization.
 
 ---
 
@@ -24,36 +46,11 @@ It is now at **v1.2.0** and live at [app.screenprintbot.com](https://app.screenp
 - **Better Errors**: Validation failures return clear, actionable messages.
 - **Calculation Logging**: Full quote breakdowns logged to `logs/chat.jsonl`.
 
-### Developer Experience
-- **`.env` Support**: Uses `python-dotenv` for local development.
-- **Code Organization**: Docstrings, type hints, and logical sections throughout.
-- **Debug Mode**: Now off by default (secure by default).
-
----
-
-## 🆕 What's New (v1.1.2)
-- **Quantity Guardrail**: Limited max quantity entry to **1000** to prevent overflow.
-- **Custom Garment Note**: Inline note: *"Max price allowed is $100."*
-- **Breakdown Clarity**: Renamed *"Base Subtotal"* to *"Items Subtotal"*; rush fee in **red**.
-- **Email Estimate Sync**: HTML email now mirrors console breakdown exactly.
-
----
-
-## 🆕 What's New (v1.1.1)
-- **FAQs Expansion**: More common questions and refined answers.
-- **Sticky Totals Fix (Mobile)**: Resolved overlap issue on mobile devices.
-
----
-
-## 🆕 What's New (v1.1.0)
-- **Custom Garment Entry**: Input box for garment label and cost.
-- **Upsell Items Module**: Add-on products (Signs, Sublimation, Stickers, DTF).
-- **Email Estimate Enhancements**: Postmark emails mirror live console breakdown.
-- **Mobile/Responsive Layout**: Sidebar sticky behavior, stacked layout under 1024px.
-
 ---
 
 ## 🚀 Features
+
+### QuickQuote Console (Shop-Facing)
 - **Live quoting:** Instant garment + print pricing.  
 - **Custom Garment Mode:** Enter any garment name and cost if not in presets.  
 - **Upsell Items:** Add banners, stickers, sublimation, or DTF with size-based pricing.  
@@ -61,9 +58,19 @@ It is now at **v1.2.0** and live at [app.screenprintbot.com](https://app.screenp
 - **Multi-location support:** Front, Back, Left Sleeve, Right Sleeve.  
 - **Flexible color counts:** Config-driven, 1–12 colors.  
 - **DTF Guardrail:** Suggests DTF when below per-shop screen-print minimum.  
-- **Branded PDFs & Emails:** Includes shop logo, colors, and Postmark integration.  
-- **Responsive Design:** Works smoothly on desktop, tablet, and mobile.  
-- **Config-driven:** Each shop defines garments, colors, markup, and upsell rates via `/clients/{shop}/config.json`.  
+- **Branded PDFs & Emails:** Includes shop logo, colors, and Postmark integration.
+
+### Customer Portal (Customer-Facing)
+- **Self-service quotes:** Customers generate quotes without shop interaction.
+- **4-step wizard:** Guided flow with validation at each step.
+- **Supply-own-garments:** Print-only pricing when customer provides blanks.
+- **Mobile responsive:** Works on desktop, tablet, and phone.
+- **Dual emails:** Customer receives quote, shop receives lead notification.
+
+### Multi-Tenant Architecture
+- **Per-shop configs:** Each shop defines garments, colors, markup, and upsell rates.
+- **Theming:** Dark/light mode with custom accent colors per tenant.
+- **Separate pricing:** Each tenant can have unique pricing tiers.
 
 ---
 
@@ -104,14 +111,47 @@ It is now at **v1.2.0** and live at [app.screenprintbot.com](https://app.screenp
    python app.py
    ```
 
-4. Visit: `http://localhost:5050/console/demo`
+4. Visit:
+   - Console: `http://localhost:5050/console/demo`
+   - Portal: `http://localhost:5050/quote/demo`
 
 ### Shop Configuration
+
 See `/clients/demo/config.json` for an example of how shops define:  
 - Branding (logo, colors, fonts)  
 - Garment catalog + markup %  
 - Screen charges and extras  
 - Upsell items (labels, per-sqft rates, size limits)
+- Max colors per placement
+- Portal theme (dark/light mode)
+
+#### Example: Max Colors Per Placement
+```json
+{
+  "console": {
+    "max_colors_per_placement": {
+      "front": 12,
+      "back": 12,
+      "left_sleeve": 4,
+      "right_sleeve": 4
+    }
+  }
+}
+```
+
+#### Example: Portal Theme
+```json
+{
+  "customer_portal": {
+    "theme": {
+      "mode": "light",
+      "primary": "#EF4444",
+      "accent": "#EF4444"
+    },
+    "notification_email": "orders@yourshop.com"
+  }
+}
+```
 
 ---
 
@@ -120,7 +160,7 @@ See `/clients/demo/config.json` for an example of how shops define:
 1. Push to GitHub:
    ```bash
    git add .
-   git commit -m "v1.2.0: Production hardening release"
+   git commit -m "v1.3.0: Customer portal release"
    git push origin main
    ```
 
@@ -128,7 +168,7 @@ See `/clients/demo/config.json` for an example of how shops define:
 
 3. Verify env vars are set in Render Dashboard → Environment.
 
-4. Check logs for: `✓ Environment variables validated`
+4. Check logs for: `✔ Environment variables validated`
 
 ---
 
@@ -143,12 +183,27 @@ See `/clients/demo/config.json` for an example of how shops define:
 │   │   └── faq.json
 │   └── swx/
 ├── templates/          # Jinja2 templates
+│   ├── console.html    # Shop-facing quote tool
+│   ├── portal.html     # Customer-facing quote wizard
+│   └── index.html      # Landing page
 ├── static/             # CSS, JS, logos
 ├── logs/               # Chat and calculation logs
 ├── requirements.txt
 ├── CHANGELOG.md
 └── README.md
 ```
+
+---
+
+## 🔗 Routes
+
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page |
+| `/console/{tenant}` | Shop-facing quote console |
+| `/quote/{tenant}` | Customer-facing quote portal |
+| `/api/quote/{tenant}` | Console quote API |
+| `/api/customer-quote/{tenant}` | Portal quote submission API |
 
 ---
 
