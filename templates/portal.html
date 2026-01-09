@@ -1335,6 +1335,9 @@
             
             if (quote.printTotal > 0) {
                 detailsHtml.push(`<div class="quote-footer-line"><span>Printing</span><span>$${quote.printTotal.toFixed(2)}</span></div>`);
+                quote.locations.forEach(loc => {
+                    detailsHtml.push(`<div class="quote-footer-line" style="padding-left: 12px; font-size: 13px; opacity: 0.8;"><span>${loc.name}: ${loc.colors} color${loc.colors > 1 ? 's' : ''}</span><span>$${loc.total.toFixed(2)}</span></div>`);
+                });
             }
 
             quote.extras.forEach(extra => {
@@ -1371,7 +1374,7 @@
             if (quote.locations.length > 0) {
                 html.push(`<div class="summary-line"><span>Screen Printing</span><span>$${quote.printTotal.toFixed(2)}</span></div>`);
                 quote.locations.forEach(loc => {
-                    html.push(`<div class="summary-line detail"><span>${loc.name}: ${loc.colors} color${loc.colors > 1 ? 's' : ''}</span><span></span></div>`);
+                    html.push(`<div class="summary-line detail"><span>${loc.name}: ${loc.colors} color${loc.colors > 1 ? 's' : ''}</span><span>$${loc.total.toFixed(2)}</span></div>`);
                 });
             }
 
